@@ -13,6 +13,8 @@ def _create_app(
     expression_names: list[str],
     put: Callable[[Command], Awaitable[None]],
     get_blink_state: Callable[[], bool],
+    get_current_expression: Callable[[], str | None],
+    get_brightness: Callable[[], int],
 ):
 
     app = FastAPI()
@@ -55,6 +57,14 @@ def _create_app(
     async def blink_state():
         return {"enabled": get_blink_state()}
 
+    @app.get("/api/state")
+    async def get_state():
+        return {
+            "expression": get_current_expression(),
+            "brightness": get_brightness(),
+            "blink_enabled": get_blink_state(),
+        }
+
     @app.websocket("/ws")
     async def websocket_endpoint(ws: WebSocket):
         await ws.accept()
@@ -86,15 +96,22 @@ class WebInput:
         port: int = 8080,
         expression_names: list[str] | None = None,
         get_blink_state: Callable[[], bool] | None = None,
+        get_current_expression: Callable[[], str | None] | None = None,
+        get_brightness: Callable[[], int] | None = None,
     ) -> None:
         self._port = port
         self._expression_names = expression_names or []
         self._get_blink_state = get_blink_state or (lambda: False)
+        self._get_current_expression = get_current_expression or (lambda: None)
+        self._get_brightness = get_brightness or (lambda: 100)
 
     async def run(self, put: Callable[[Command], Awaitable[None]]) -> None:
         import uvicorn
 
-        app = _create_app(self._expression_names, put, self._get_blink_state)
+        app = _create_app(
+            self._expression_names, put, self._get_blink_state,
+            self._get_current_expression, self._get_brightness,
+        )
         config = uvicorn.Config(app, host="0.0.0.0", port=self._port, log_level="info", ws="wsproto")
         server = uvicorn.Server(config)
         await server.serve()

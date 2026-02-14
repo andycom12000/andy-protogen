@@ -368,7 +368,7 @@
             ws.onopen = () => {
                 statusEl.textContent = 'ONLINE';
                 statusEl.className = 'status connected';
-                loadBlinkState();
+                loadState();
             };
             ws.onclose = () => {
                 statusEl.textContent = 'OFFLINE';
@@ -422,19 +422,30 @@
             }
         }
 
-        async function loadBlinkState() {
+        async function loadState() {
             try {
-                const res = await fetch('/api/blink/state');
-                const { enabled } = await res.json();
-                blinkToggleEl.checked = enabled;
+                const res = await fetch('/api/state');
+                const state = await res.json();
+                // Update active expression button
+                if (state.expression) {
+                    exprEl.querySelectorAll('button').forEach(btn => {
+                        btn.classList.toggle('active', btn.textContent === state.expression);
+                    });
+                }
+                // Update brightness
+                if (state.brightness != null) {
+                    brightnessEl.value = state.brightness;
+                    bvalEl.textContent = state.brightness + '%';
+                }
+                // Update blink toggle
+                blinkToggleEl.checked = state.blink_enabled;
             } catch (e) {
-                console.error('Failed to load blink state:', e);
+                console.error('Failed to load state:', e);
             }
         }
 
         connect();
         loadExpressions();
-        loadBlinkState();
     </script>
 </body>
 </html>

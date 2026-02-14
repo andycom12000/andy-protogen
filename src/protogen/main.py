@@ -49,6 +49,8 @@ async def async_main() -> None:
             port=config.input.web_port,
             expression_names=expr_mgr.expression_names,
             get_blink_state=lambda: expr_mgr.blink_enabled,
+            get_current_expression=lambda: expr_mgr.current_name,
+            get_brightness=lambda: display.brightness,
         ))
 
     # 設定預設表情
