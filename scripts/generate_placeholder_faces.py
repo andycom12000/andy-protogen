@@ -102,8 +102,6 @@ def _draw_flat_eye(draw: ImageDraw.ImageDraw, cx: int, cy: int, color=CYAN):
     w = 10
     # Main flat line
     draw.line([(cx - w, cy), (cx + w, cy)], fill=color, width=3)
-    # Slight upper lid curve to show it's half-closed, not fully shut
-    draw.arc([cx - w, cy - 6, cx + w, cy + 2], 200, 340, fill=color, width=2)
 
 
 def _draw_closed_eye(draw: ImageDraw.ImageDraw, cx: int, cy: int,
@@ -176,13 +174,23 @@ def generate_default() -> Image.Image:
 
 
 def generate_happy() -> Image.Image:
-    """Happy: upward arc eyes ^ ^ with zigzag smile."""
+    """Happy: upward arc eyes ^ ^ with wide zigzag smile, corners up."""
     img = Image.new("RGB", (WIDTH, HEIGHT), BG)
     draw = ImageDraw.Draw(img)
     _draw_arc_eye(draw, *LEFT_EYE)
     _draw_arc_eye(draw, *RIGHT_EYE)
     _draw_nose_dots(draw)
-    _draw_mouth_zigzag(draw)
+    # Zigzag U-shaped smile, rounder curve, sparser teeth
+    pts = [
+        (40, 19),
+        (44, 20), (48, 22),
+        (52, 25), (56, 24),
+        (60, 28), (64, 29),
+        (68, 28), (72, 24),
+        (76, 25), (80, 22),
+        (84, 20), (88, 19),
+    ]
+    draw.line(pts, fill=CYAN, width=3)
     return img
 
 
@@ -226,14 +234,13 @@ def generate_very_angry() -> Image.Image:
             draw.line([(cx - 13, brow_y_inner), (cx + 13, brow_y_outer)], fill=RED, width=3)
 
     _draw_nose_dots(draw, color=RED)
-    # Wider, denser zigzag mouth
+    # Wider zigzag mouth with looser teeth
     pts = [
         (50, 29),
-        (51, 28), (52, 29), (53, 27), (54, 28), (55, 27), (56, 26),
-        (57, 27), (58, 25), (59, 26), (60, 25), (61, 24), (62, 25),
-        (63, 23), (64, 22), (65, 23), (66, 25), (67, 24), (68, 25),
-        (69, 26), (70, 25), (71, 27), (72, 26), (73, 27), (74, 28),
-        (75, 27), (76, 29), (77, 28), (78, 29),
+        (53, 27), (56, 29), (59, 26), (62, 28),
+        (64, 22),
+        (66, 28), (69, 26), (72, 29), (75, 27),
+        (78, 29),
     ]
     draw.line(pts, fill=RED, width=1)
 
@@ -256,13 +263,21 @@ def generate_crying() -> Image.Image:
 
 
 def generate_shocked() -> Image.Image:
-    """Shocked: large filled round eyes, zigzag 'o' mouth."""
+    """Shocked: large filled round eyes, upper-half egg mouth."""
     img = Image.new("RGB", (WIDTH, HEIGHT), BG)
     draw = ImageDraw.Draw(img)
     _draw_round_eye(draw, *LEFT_EYE, outer_r=10, inner_r=3)
     _draw_round_eye(draw, *RIGHT_EYE, outer_r=10, inner_r=3)
     _draw_nose_dots(draw)
-    _draw_mouth_zigzag_o(draw)
+    # Upper half egg mouth, filled solid
+    draw.chord([48, 22, 80, 38], 180, 360, fill=CYAN)
+    # Crescent fangs carved from top of mouth downward (negative space)
+    # Left fang: cut ) shape from top
+    draw.ellipse([55, 19, 63, 29], fill=BG)
+    draw.ellipse([57, 19, 65, 29], fill=CYAN)
+    # Right fang: cut ( shape from top (mirrored)
+    draw.ellipse([65, 19, 73, 29], fill=BG)
+    draw.ellipse([63, 19, 71, 29], fill=CYAN)
     return img
 
 
