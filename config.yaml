@@ -1,0 +1,20 @@
+# config.yaml
+display:
+  width: 128
+  height: 32
+  n_addr_lines: 4
+  brightness: 80
+  mock: true        # 開發模式用 MockDisplay
+  mock_scale: 8
+
+input:
+  button_pin: 17
+  ble_enabled: false
+  web_enabled: true
+  web_port: 8080
+
+expressions_dir: "expressions"
+default_expression: "happy"
+blink_interval_min: 3.0
+blink_interval_max: 8.0
+transition_duration_ms: 150
