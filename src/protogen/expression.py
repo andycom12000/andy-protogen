@@ -28,7 +28,7 @@ class Expression:
 def load_expressions(expressions_dir: str | Path) -> dict[str, Expression]:
     expressions_dir = Path(expressions_dir)
     manifest_path = expressions_dir / "manifest.json"
-    with open(manifest_path) as f:
+    with open(manifest_path, encoding="utf-8") as f:
         manifest = json.load(f)
 
     result: dict[str, Expression] = {}

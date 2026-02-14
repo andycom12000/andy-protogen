@@ -37,7 +37,7 @@ class Config:
         path = Path(path)
         if not path.exists():
             return cls()
-        with open(path) as f:
+        with open(path, encoding="utf-8") as f:
             data = yaml.safe_load(f) or {}
         config = cls()
         if "display" in data:
