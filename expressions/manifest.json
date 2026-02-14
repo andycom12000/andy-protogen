@@ -1,0 +1,26 @@
+{
+  "expressions": {
+    "happy": {
+      "type": "static",
+      "file": "base/happy.png",
+      "idle_animation": "blink"
+    },
+    "sad": {
+      "type": "static",
+      "file": "base/sad.png",
+      "idle_animation": "blink"
+    },
+    "angry": {
+      "type": "static",
+      "file": "base/angry.png",
+      "idle_animation": "blink"
+    },
+    "blink": {
+      "type": "animation",
+      "frames_dir": "animations/blink",
+      "fps": 15,
+      "loop": false
+    }
+  },
+  "default": "happy"
+}
