@@ -4,132 +4,296 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Protogen Controller</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;600&family=Fira+Sans:wght@400;500;600&display=swap" rel="stylesheet">
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --bg-primary: #0a0e1a;
+            --bg-card: #111827;
+            --bg-card-hover: #1a2236;
+            --accent: #00ffff;
+            --accent-dim: rgba(0, 255, 255, 0.15);
+            --accent-glow: rgba(0, 255, 255, 0.4);
+            --text-primary: #e2e8f0;
+            --text-muted: #64748b;
+            --success: #22c55e;
+            --danger: #ef4444;
+            --border: #1e293b;
+        }
+
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-            background: #1a1a2e;
-            color: #eee;
-            min-height: 100vh;
+            font-family: 'Fira Sans', system-ui, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100dvh;
             display: flex;
             flex-direction: column;
             align-items: center;
-            padding: 20px;
+            padding: 24px 16px;
+            -webkit-font-smoothing: antialiased;
         }
-        h1 {
-            font-size: 1.5rem;
-            margin-bottom: 20px;
-            color: #0ff;
+
+        /* Scanline overlay */
+        body::after {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background: repeating-linear-gradient(
+                0deg,
+                transparent,
+                transparent 2px,
+                rgba(0, 0, 0, 0.03) 2px,
+                rgba(0, 0, 0, 0.03) 4px
+            );
+            pointer-events: none;
+            z-index: 100;
         }
-        .status {
-            font-size: 0.85rem;
-            margin-bottom: 15px;
-            padding: 6px 14px;
-            border-radius: 20px;
-            background: #16213e;
-        }
-        .status.connected { color: #0f0; }
-        .status.disconnected { color: #f44; }
-        .nav-buttons {
+
+        .container {
+            width: 100%;
+            max-width: 420px;
             display: flex;
-            gap: 12px;
-            margin-bottom: 20px;
+            flex-direction: column;
+            gap: 24px;
         }
-        .nav-buttons button {
-            padding: 12px 28px;
-            font-size: 1.1rem;
-            border: 2px solid #0ff;
-            background: transparent;
-            color: #0ff;
-            border-radius: 8px;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-        .nav-buttons button:hover {
-            background: #0ff;
-            color: #1a1a2e;
-        }
-        .nav-buttons button:active {
-            transform: scale(0.95);
-        }
-        .expressions {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-            gap: 10px;
-            width: 100%;
-            max-width: 500px;
-            margin-bottom: 25px;
-        }
-        .expressions button {
-            padding: 14px 8px;
-            font-size: 1rem;
-            border: 1px solid #333;
-            background: #16213e;
-            color: #eee;
-            border-radius: 8px;
-            cursor: pointer;
-            transition: all 0.2s;
-            text-transform: capitalize;
-        }
-        .expressions button:hover {
-            border-color: #0ff;
-            background: #1a1a3e;
-        }
-        .expressions button.active {
-            border-color: #0ff;
-            background: #0ff22;
-            color: #0ff;
-            font-weight: bold;
-        }
-        .brightness-section {
-            width: 100%;
-            max-width: 500px;
+
+        /* Header */
+        .header {
             text-align: center;
         }
-        .brightness-section label {
-            display: block;
-            margin-bottom: 8px;
-            font-size: 0.9rem;
-            color: #aaa;
+
+        .header h1 {
+            font-family: 'Fira Code', monospace;
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--accent);
+            text-shadow: 0 0 20px var(--accent-glow), 0 0 40px rgba(0, 255, 255, 0.15);
+            letter-spacing: 0.05em;
         }
+
+        /* Status indicator */
+        .status {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-family: 'Fira Code', monospace;
+            font-size: 0.75rem;
+            padding: 6px 14px;
+            border-radius: 999px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            margin-top: 10px;
+            transition: border-color 0.3s, color 0.3s;
+        }
+
+        .status::before {
+            content: '';
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            transition: background 0.3s, box-shadow 0.3s;
+        }
+
+        .status.connected {
+            color: var(--success);
+            border-color: rgba(34, 197, 94, 0.3);
+        }
+        .status.connected::before {
+            background: var(--success);
+            box-shadow: 0 0 8px var(--success);
+        }
+
+        .status.disconnected {
+            color: var(--danger);
+            border-color: rgba(239, 68, 68, 0.3);
+        }
+        .status.disconnected::before {
+            background: var(--danger);
+            box-shadow: 0 0 8px var(--danger);
+        }
+
+        /* Section card */
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 20px;
+        }
+
+        .card-label {
+            font-family: 'Fira Code', monospace;
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--text-muted);
+            margin-bottom: 14px;
+        }
+
+        /* Expression grid */
+        .expressions {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+        }
+
+        .expressions button {
+            position: relative;
+            min-height: 56px;
+            padding: 14px 8px;
+            font-family: 'Fira Sans', sans-serif;
+            font-size: 0.95rem;
+            font-weight: 500;
+            text-transform: capitalize;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .expressions button:hover {
+            background: var(--bg-card-hover);
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+
+        .expressions button:active {
+            transform: scale(0.97);
+        }
+
+        .expressions button:focus-visible {
+            outline: 2px solid var(--accent);
+            outline-offset: 2px;
+        }
+
+        .expressions button.active {
+            border-color: var(--accent);
+            background: var(--accent-dim);
+            color: var(--accent);
+            font-weight: 600;
+            box-shadow: 0 0 15px rgba(0, 255, 255, 0.1), inset 0 0 15px rgba(0, 255, 255, 0.05);
+        }
+
+        /* Brightness control */
+        .brightness-control {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .brightness-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+        }
+
+        .brightness-value {
+            font-family: 'Fira Code', monospace;
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--accent);
+            text-shadow: 0 0 10px var(--accent-glow);
+        }
+
+        /* Custom range slider */
         input[type="range"] {
+            -webkit-appearance: none;
+            appearance: none;
             width: 100%;
-            accent-color: #0ff;
+            height: 6px;
+            background: var(--bg-primary);
+            border-radius: 3px;
+            outline: none;
+            cursor: pointer;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: var(--accent);
+            box-shadow: 0 0 10px var(--accent-glow);
+            cursor: pointer;
+            transition: box-shadow 0.2s;
+        }
+
+        input[type="range"]::-webkit-slider-thumb:hover {
+            box-shadow: 0 0 18px var(--accent-glow), 0 0 30px rgba(0, 255, 255, 0.2);
+        }
+
+        input[type="range"]::-moz-range-thumb {
+            width: 24px;
+            height: 24px;
+            border: none;
+            border-radius: 50%;
+            background: var(--accent);
+            box-shadow: 0 0 10px var(--accent-glow);
+            cursor: pointer;
+        }
+
+        input[type="range"]:focus-visible {
+            outline: 2px solid var(--accent);
+            outline-offset: 4px;
+            border-radius: 3px;
+        }
+
+        /* Reduced motion */
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after {
+                transition-duration: 0.01ms !important;
+                animation-duration: 0.01ms !important;
+            }
+            body::after { display: none; }
+            .header h1 { text-shadow: none; }
         }
     </style>
 </head>
 <body>
-    <h1>Protogen Controller</h1>
-    <div class="status disconnected" id="status">Disconnected</div>
+    <div class="container">
+        <div class="header">
+            <h1>PROTOGEN</h1>
+            <div class="status disconnected" id="status">OFFLINE</div>
+        </div>
 
-    <div class="nav-buttons">
-        <button onclick="send({action:'prev'})">&#9664; Prev</button>
-        <button onclick="send({action:'next'})">Next &#9654;</button>
-    </div>
+        <div class="card">
+            <div class="card-label">Expressions</div>
+            <div class="expressions" id="expressions"></div>
+        </div>
 
-    <div class="expressions" id="expressions"></div>
-
-    <div class="brightness-section">
-        <label>Brightness: <span id="bval">80</span>%</label>
-        <input type="range" min="0" max="100" value="80" id="brightness"
-               oninput="document.getElementById('bval').textContent=this.value"
-               onchange="send({action:'brightness', value:parseInt(this.value)})">
+        <div class="card">
+            <div class="card-label">Brightness</div>
+            <div class="brightness-control">
+                <div class="brightness-header">
+                    <span class="brightness-value" id="bval">80%</span>
+                </div>
+                <input type="range" min="0" max="100" value="80" id="brightness"
+                       aria-label="Brightness">
+            </div>
+        </div>
     </div>
 
     <script>
         let ws;
         const statusEl = document.getElementById('status');
         const exprEl = document.getElementById('expressions');
+        const brightnessEl = document.getElementById('brightness');
+        const bvalEl = document.getElementById('bval');
 
         function connect() {
             const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
             ws = new WebSocket(`${proto}//${location.host}/ws`);
             ws.onopen = () => {
-                statusEl.textContent = 'Connected';
+                statusEl.textContent = 'ONLINE';
                 statusEl.className = 'status connected';
             };
             ws.onclose = () => {
-                statusEl.textContent = 'Disconnected';
+                statusEl.textContent = 'OFFLINE';
                 statusEl.className = 'status disconnected';
                 setTimeout(connect, 2000);
             };
@@ -140,22 +304,31 @@
             if (ws && ws.readyState === WebSocket.OPEN) {
                 ws.send(JSON.stringify(data));
             } else {
-                fetch(`/api/${data.action === 'set' ? 'expression/' + data.name :
-                       data.action === 'brightness' ? 'brightness/' + data.value :
-                       data.action}`, { method: 'POST' });
+                const path = data.action === 'set' ? 'expression/' + data.name
+                           : data.action === 'brightness' ? 'brightness/' + data.value
+                           : data.action;
+                fetch('/api/' + path, { method: 'POST' });
             }
         }
+
+        brightnessEl.addEventListener('input', () => {
+            bvalEl.textContent = brightnessEl.value + '%';
+        });
+        brightnessEl.addEventListener('change', () => {
+            send({ action: 'brightness', value: parseInt(brightnessEl.value) });
+        });
 
         async function loadExpressions() {
             try {
                 const res = await fetch('/api/expressions');
-                const data = await res.json();
+                const { expressions } = await res.json();
                 exprEl.innerHTML = '';
-                data.expressions.forEach(name => {
+                expressions.forEach(name => {
                     const btn = document.createElement('button');
                     btn.textContent = name;
+                    btn.setAttribute('type', 'button');
                     btn.onclick = () => {
-                        document.querySelectorAll('.expressions button').forEach(b => b.classList.remove('active'));
+                        exprEl.querySelectorAll('button').forEach(b => b.classList.remove('active'));
                         btn.classList.add('active');
                         send({ action: 'set', name });
                     };
