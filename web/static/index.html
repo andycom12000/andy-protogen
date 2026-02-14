@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Protogen Controller</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: #1a1a2e;
+            color: #eee;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+        h1 {
+            font-size: 1.5rem;
+            margin-bottom: 20px;
+            color: #0ff;
+        }
+        .status {
+            font-size: 0.85rem;
+            margin-bottom: 15px;
+            padding: 6px 14px;
+            border-radius: 20px;
+            background: #16213e;
+        }
+        .status.connected { color: #0f0; }
+        .status.disconnected { color: #f44; }
+        .nav-buttons {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+        .nav-buttons button {
+            padding: 12px 28px;
+            font-size: 1.1rem;
+            border: 2px solid #0ff;
+            background: transparent;
+            color: #0ff;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .nav-buttons button:hover {
+            background: #0ff;
+            color: #1a1a2e;
+        }
+        .nav-buttons button:active {
+            transform: scale(0.95);
+        }
+        .expressions {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+            gap: 10px;
+            width: 100%;
+            max-width: 500px;
+            margin-bottom: 25px;
+        }
+        .expressions button {
+            padding: 14px 8px;
+            font-size: 1rem;
+            border: 1px solid #333;
+            background: #16213e;
+            color: #eee;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-transform: capitalize;
+        }
+        .expressions button:hover {
+            border-color: #0ff;
+            background: #1a1a3e;
+        }
+        .expressions button.active {
+            border-color: #0ff;
+            background: #0ff22;
+            color: #0ff;
+            font-weight: bold;
+        }
+        .brightness-section {
+            width: 100%;
+            max-width: 500px;
+            text-align: center;
+        }
+        .brightness-section label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 0.9rem;
+            color: #aaa;
+        }
+        input[type="range"] {
+            width: 100%;
+            accent-color: #0ff;
+        }
+    </style>
+</head>
+<body>
+    <h1>Protogen Controller</h1>
+    <div class="status disconnected" id="status">Disconnected</div>
+
+    <div class="nav-buttons">
+        <button onclick="send({action:'prev'})">&#9664; Prev</button>
+        <button onclick="send({action:'next'})">Next &#9654;</button>
+    </div>
+
+    <div class="expressions" id="expressions"></div>
+
+    <div class="brightness-section">
+        <label>Brightness: <span id="bval">80</span>%</label>
+        <input type="range" min="0" max="100" value="80" id="brightness"
+               oninput="document.getElementById('bval').textContent=this.value"
+               onchange="send({action:'brightness', value:parseInt(this.value)})">
+    </div>
+
+    <script>
+        let ws;
+        const statusEl = document.getElementById('status');
+        const exprEl = document.getElementById('expressions');
+
+        function connect() {
+            const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+            ws = new WebSocket(`${proto}//${location.host}/ws`);
+            ws.onopen = () => {
+                statusEl.textContent = 'Connected';
+                statusEl.className = 'status connected';
+            };
+            ws.onclose = () => {
+                statusEl.textContent = 'Disconnected';
+                statusEl.className = 'status disconnected';
+                setTimeout(connect, 2000);
+            };
+            ws.onerror = () => ws.close();
+        }
+
+        function send(data) {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify(data));
+            } else {
+                fetch(`/api/${data.action === 'set' ? 'expression/' + data.name :
+                       data.action === 'brightness' ? 'brightness/' + data.value :
+                       data.action}`, { method: 'POST' });
+            }
+        }
+
+        async function loadExpressions() {
+            try {
+                const res = await fetch('/api/expressions');
+                const data = await res.json();
+                exprEl.innerHTML = '';
+                data.expressions.forEach(name => {
+                    const btn = document.createElement('button');
+                    btn.textContent = name;
+                    btn.onclick = () => {
+                        document.querySelectorAll('.expressions button').forEach(b => b.classList.remove('active'));
+                        btn.classList.add('active');
+                        send({ action: 'set', name });
+                    };
+                    exprEl.appendChild(btn);
+                });
+            } catch (e) {
+                console.error('Failed to load expressions:', e);
+            }
+        }
+
+        connect();
+        loadExpressions();
+    </script>
+</body>
+</html>
