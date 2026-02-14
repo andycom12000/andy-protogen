@@ -176,7 +176,14 @@
             color: var(--accent);
             font-weight: 600;
             box-shadow: 0 0 15px rgba(0, 255, 255, 0.1), inset 0 0 15px rgba(0, 255, 255, 0.05);
+            animation: activePulse 2s ease-in-out infinite;
         }
+
+        @keyframes activePulse {
+            0%, 100% { box-shadow: 0 0 15px rgba(0, 255, 255, 0.1), inset 0 0 15px rgba(0, 255, 255, 0.05); }
+            50% { box-shadow: 0 0 20px rgba(0, 255, 255, 0.25), inset 0 0 20px rgba(0, 255, 255, 0.1); }
+        }
+
 
         /* Toggle switch */
         .toggle-row {
@@ -270,7 +277,7 @@
             appearance: none;
             width: 100%;
             height: 6px;
-            background: var(--bg-primary);
+            background: linear-gradient(to right, var(--accent) 0%, var(--accent) var(--fill, 80%), var(--bg-primary) var(--fill, 80%));
             border-radius: 3px;
             outline: none;
             cursor: pointer;
@@ -361,6 +368,15 @@
         const brightnessEl = document.getElementById('brightness');
         const bvalEl = document.getElementById('bval');
         const blinkToggleEl = document.getElementById('blinkToggle');
+        /* Friendly display name: "loading_bar" → "Loading Bar" */
+        function displayName(id) {
+            return id.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+        }
+
+        /* Update brightness slider fill track */
+        function updateSliderFill() {
+            brightnessEl.style.setProperty('--fill', brightnessEl.value + '%');
+        }
 
         function connect() {
             const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
@@ -376,6 +392,22 @@
                 setTimeout(connect, 2000);
             };
             ws.onerror = () => ws.close();
+            ws.onmessage = (e) => {
+                try {
+                    const msg = JSON.parse(e.data);
+                    if (msg.expression) {
+                        setActiveExpression(msg.expression);
+                    }
+                    if (msg.brightness != null) {
+                        brightnessEl.value = msg.brightness;
+                        bvalEl.textContent = msg.brightness + '%';
+                        updateSliderFill();
+                    }
+                    if (msg.blink_enabled != null) {
+                        blinkToggleEl.checked = msg.blink_enabled;
+                    }
+                } catch (_) {}
+            };
         }
 
         function send(data) {
@@ -390,8 +422,15 @@
             }
         }
 
+        function setActiveExpression(name) {
+            exprEl.querySelectorAll('button').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.expr === name);
+            });
+        }
+
         brightnessEl.addEventListener('input', () => {
             bvalEl.textContent = brightnessEl.value + '%';
+            updateSliderFill();
         });
         brightnessEl.addEventListener('change', () => {
             send({ action: 'brightness', value: parseInt(brightnessEl.value) });
@@ -408,11 +447,11 @@
                 exprEl.innerHTML = '';
                 expressions.filter(name => name !== 'blink').forEach(name => {
                     const btn = document.createElement('button');
-                    btn.textContent = name;
+                    btn.textContent = displayName(name);
+                    btn.dataset.expr = name;
                     btn.setAttribute('type', 'button');
                     btn.onclick = () => {
-                        exprEl.querySelectorAll('button').forEach(b => b.classList.remove('active'));
-                        btn.classList.add('active');
+                        setActiveExpression(name);
                         send({ action: 'set', name });
                     };
                     exprEl.appendChild(btn);
@@ -426,24 +465,21 @@
             try {
                 const res = await fetch('/api/state');
                 const state = await res.json();
-                // Update active expression button
                 if (state.expression) {
-                    exprEl.querySelectorAll('button').forEach(btn => {
-                        btn.classList.toggle('active', btn.textContent === state.expression);
-                    });
+                    setActiveExpression(state.expression);
                 }
-                // Update brightness
                 if (state.brightness != null) {
                     brightnessEl.value = state.brightness;
                     bvalEl.textContent = state.brightness + '%';
+                    updateSliderFill();
                 }
-                // Update blink toggle
                 blinkToggleEl.checked = state.blink_enabled;
             } catch (e) {
                 console.error('Failed to load state:', e);
             }
         }
 
+        updateSliderFill();
         connect();
         loadExpressions();
     </script>
