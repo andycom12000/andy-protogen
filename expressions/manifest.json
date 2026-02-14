@@ -30,6 +30,10 @@
       "type": "static",
       "file": "base/very_angry.png"
     },
+    "bsod": {
+      "type": "static",
+      "file": "base/bsod.png"
+    },
     "blink": {
       "type": "animation",
       "frames_dir": "animations/blink",

@@ -9,6 +9,8 @@ WIDTH, HEIGHT = 128, 32
 BG = (0, 0, 0)
 CYAN = (0, 255, 200)  # Main LED color from character design
 RED = (255, 60, 60)   # Accent color for angry expression
+BSOD_BLUE = (0, 120, 215)  # Windows BSOD background
+WHITE = (255, 255, 255)
 
 # Eye centers
 LEFT_EYE = (32, 16)
@@ -292,6 +294,33 @@ def generate_helpless() -> Image.Image:
     return img
 
 
+def generate_bsod() -> Image.Image:
+    """BSOD: Blue Screen of Death — full blue background with :( and text lines."""
+    img = Image.new("RGB", (WIDTH, HEIGHT), BSOD_BLUE)
+    draw = ImageDraw.Draw(img)
+
+    # Large :( on the left side (Windows 10/11 style)
+    # Colon — two dots
+    draw.rectangle([12, 8, 14, 11], fill=WHITE)
+    draw.rectangle([12, 15, 14, 18], fill=WHITE)
+    # Left parenthesis ( — curves left in the middle
+    paren_pts = [
+        (20, 7), (19, 8), (18, 10), (18, 12), (18, 14),
+        (18, 16), (18, 18), (19, 20), (20, 21),
+    ]
+    for x, y in paren_pts:
+        draw.rectangle([x, y, x + 1, y + 1], fill=WHITE)
+
+    # Simulated error text lines on the right side
+    text_x = 40
+    draw.line([(text_x, 10), (text_x + 50, 10)], fill=WHITE, width=1)
+    draw.line([(text_x, 14), (text_x + 38, 14)], fill=WHITE, width=1)
+    draw.line([(text_x, 18), (text_x + 44, 18)], fill=WHITE, width=1)
+    draw.line([(text_x, 22), (text_x + 30, 22)], fill=WHITE, width=1)
+
+    return img
+
+
 def generate_blink_frames(base_img: Image.Image, n_frames: int = 7):
     """Generate blink animation based on default expression.
 
@@ -360,6 +389,7 @@ def main():
         "shocked": generate_shocked,
         "helpless": generate_helpless,
         "very_angry": generate_very_angry,
+        "bsod": generate_bsod,
     }
 
     generated_images = {}
