@@ -27,17 +27,16 @@ def _mirror_points(points: list[tuple[int, int]], cx_from: int, cx_to: int):
 
 
 def _draw_default_eye(draw: ImageDraw.ImageDraw, cx: int, cy: int,
-                      color=CYAN, is_left: bool = True):
+                      color=CYAN, is_left: bool = True,
+                      rx: int = 10, ry: int = 7, angle: int | None = None):
     """Draw a filled ellipse eye tilted slightly downward toward the nose.
 
     From the character design: filled oval eyes with a slight inward tilt.
     """
     import PIL.Image
-    import math
 
-    rx, ry = 10, 7  # ellipse radii
-    # Tilt angle: inner side slightly lower
-    angle = -15 if is_left else 15  # degrees
+    if angle is None:
+        angle = -15 if is_left else 15  # degrees
 
     # Draw rotated filled ellipse using a temporary image
     size = max(rx, ry) * 2 + 4
@@ -130,12 +129,14 @@ def _draw_mouth_zigzag(draw: ImageDraw.ImageDraw, color=CYAN):
     draw.line(pts, fill=color, width=1)
 
 
-def _draw_mouth_zigzag_flat(draw: ImageDraw.ImageDraw, color=CYAN):
-    """Draw a zigzag flat/angry mouth."""
+def _draw_mouth_zigzag_angry(draw: ImageDraw.ImageDraw, color=CYAN):
+    """Draw a dense zigzag U-shaped angry mouth (corners up, center down)."""
     pts = [
-        (54, 26),
-        (57, 27), (60, 26), (62, 27), (64, 26), (66, 27), (68, 26),
-        (71, 27), (74, 26),
+        (54, 29),
+        (55, 28), (56, 29), (57, 27), (58, 28), (59, 27), (60, 26),
+        (61, 27), (62, 25), (63, 26), (64, 24), (65, 26), (66, 25),
+        (67, 27), (68, 26), (69, 27), (70, 28), (71, 27), (72, 29),
+        (73, 28), (74, 29),
     ]
     draw.line(pts, fill=color, width=1)
 
@@ -186,13 +187,60 @@ def generate_happy() -> Image.Image:
 
 
 def generate_angry() -> Image.Image:
-    """Angry: narrow slit eyes with brow lines, red color, zigzag flat mouth."""
+    """Angry: flat filled oval eyes (red) + brow lines, dense zigzag mouth."""
     img = Image.new("RGB", (WIDTH, HEIGHT), BG)
     draw = ImageDraw.Draw(img)
-    _draw_angry_eye(draw, *LEFT_EYE, is_left=True)
-    _draw_angry_eye(draw, *RIGHT_EYE, is_left=False)
+    # Flatter oval eyes, red
+    _draw_default_eye(draw, *LEFT_EYE, color=RED, is_left=True, rx=12, ry=5)
+    _draw_default_eye(draw, *RIGHT_EYE, color=RED, is_left=False, rx=12, ry=5)
+    # Angry brow lines pressing down over the eyes
+    lx, ly = LEFT_EYE
+    rcx, rcy = RIGHT_EYE
+    draw.line([(lx - 12, ly - 9), (lx + 12, ly - 5)], fill=RED, width=2)
+    draw.line([(rcx - 12, rcy - 5), (rcx + 12, rcy - 9)], fill=RED, width=2)
     _draw_nose_dots(draw, color=RED)
-    _draw_mouth_zigzag_flat(draw, color=RED)
+    _draw_mouth_zigzag_angry(draw, color=RED)
+    return img
+
+
+def generate_very_angry() -> Image.Image:
+    """Very angry: egg eyes half-cut by heavy brows, frown wrinkles, fierce zigzag mouth."""
+    img = Image.new("RGB", (WIDTH, HEIGHT), BG)
+    draw = ImageDraw.Draw(img)
+
+    for (cx, cy), is_left in [(LEFT_EYE, True), (RIGHT_EYE, False)]:
+        # Draw full egg-shaped eye (taller oval)
+        _draw_default_eye(draw, cx, cy, color=RED, is_left=is_left, rx=10, ry=8, angle=-12 if is_left else 12)
+        # Cut the top half with a black mask + heavy brow line
+        brow_y_outer = cy - 6
+        brow_y_inner = cy - 1
+        if is_left:
+            pts_mask = [(cx - 15, cy - 14), (cx + 15, cy - 14),
+                        (cx + 15, brow_y_inner), (cx - 15, brow_y_outer)]
+            draw.polygon(pts_mask, fill=BG)
+            draw.line([(cx - 13, brow_y_outer), (cx + 13, brow_y_inner)], fill=RED, width=3)
+        else:
+            pts_mask = [(cx - 15, cy - 14), (cx + 15, cy - 14),
+                        (cx - 15, brow_y_inner + 2), (cx + 15, brow_y_outer + 2)]
+            draw.polygon(pts_mask, fill=BG)
+            draw.line([(cx - 13, brow_y_inner), (cx + 13, brow_y_outer)], fill=RED, width=3)
+
+    _draw_nose_dots(draw, color=RED)
+    # Wider, denser zigzag mouth
+    pts = [
+        (50, 29),
+        (51, 28), (52, 29), (53, 27), (54, 28), (55, 27), (56, 26),
+        (57, 27), (58, 25), (59, 26), (60, 25), (61, 24), (62, 25),
+        (63, 23), (64, 22), (65, 23), (66, 25), (67, 24), (68, 25),
+        (69, 26), (70, 25), (71, 27), (72, 26), (73, 27), (74, 28),
+        (75, 27), (76, 29), (77, 28), (78, 29),
+    ]
+    draw.line(pts, fill=RED, width=1)
+
+    # Mirror left half to right half for perfect symmetry
+    left_half = img.crop((0, 0, 64, 32))
+    right_half = left_half.transpose(Image.FLIP_LEFT_RIGHT)
+    img.paste(right_half, (64, 0))
     return img
 
 
@@ -296,6 +344,7 @@ def main():
         "crying": generate_crying,
         "shocked": generate_shocked,
         "helpless": generate_helpless,
+        "very_angry": generate_very_angry,
     }
 
     generated_images = {}

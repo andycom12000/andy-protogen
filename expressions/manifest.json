@@ -26,6 +26,10 @@
       "type": "static",
       "file": "base/helpless.png"
     },
+    "very_angry": {
+      "type": "static",
+      "file": "base/very_angry.png"
+    },
     "blink": {
       "type": "animation",
       "frames_dir": "animations/blink",
