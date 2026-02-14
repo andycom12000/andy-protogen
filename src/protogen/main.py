@@ -48,6 +48,7 @@ async def async_main() -> None:
         input_mgr.add_source(WebInput(
             port=config.input.web_port,
             expression_names=expr_mgr.expression_names,
+            get_blink_state=lambda: expr_mgr.blink_enabled,
         ))
 
     # 設定預設表情
@@ -65,6 +66,8 @@ async def async_main() -> None:
                 expr_mgr.prev_expression()
             elif cmd.event == InputEvent.SET_BRIGHTNESS:
                 display.set_brightness(cmd.value)
+            elif cmd.event == InputEvent.TOGGLE_BLINK:
+                expr_mgr.toggle_blink()
 
     # pygame 事件迴圈（保持視窗回應）
     async def pump_display_events():

@@ -12,6 +12,7 @@ from protogen.commands import Command, InputEvent
 def _create_app(
     expression_names: list[str],
     put: Callable[[Command], Awaitable[None]],
+    get_blink_state: Callable[[], bool],
 ):
 
     app = FastAPI()
@@ -45,6 +46,15 @@ def _create_app(
         await put(Command(event=InputEvent.SET_BRIGHTNESS, value=value))
         return {"status": "ok"}
 
+    @app.post("/api/blink/toggle")
+    async def toggle_blink():
+        await put(Command(event=InputEvent.TOGGLE_BLINK))
+        return {"status": "ok", "enabled": get_blink_state()}
+
+    @app.get("/api/blink/state")
+    async def blink_state():
+        return {"enabled": get_blink_state()}
+
     @app.websocket("/ws")
     async def websocket_endpoint(ws: WebSocket):
         await ws.accept()
@@ -60,6 +70,8 @@ def _create_app(
                     await put(Command(event=InputEvent.PREV_EXPRESSION))
                 elif action == "brightness":
                     await put(Command(event=InputEvent.SET_BRIGHTNESS, value=data["value"]))
+                elif action == "toggle_blink":
+                    await put(Command(event=InputEvent.TOGGLE_BLINK))
         except Exception:
             pass
 
@@ -69,14 +81,20 @@ def _create_app(
 class WebInput:
     """FastAPI + WebSocket web control interface."""
 
-    def __init__(self, port: int = 8080, expression_names: list[str] | None = None) -> None:
+    def __init__(
+        self,
+        port: int = 8080,
+        expression_names: list[str] | None = None,
+        get_blink_state: Callable[[], bool] | None = None,
+    ) -> None:
         self._port = port
         self._expression_names = expression_names or []
+        self._get_blink_state = get_blink_state or (lambda: False)
 
     async def run(self, put: Callable[[Command], Awaitable[None]]) -> None:
         import uvicorn
 
-        app = _create_app(self._expression_names, put)
+        app = _create_app(self._expression_names, put, self._get_blink_state)
         config = uvicorn.Config(app, host="0.0.0.0", port=self._port, log_level="info", ws="wsproto")
         server = uvicorn.Server(config)
         await server.serve()

@@ -178,6 +178,71 @@
             box-shadow: 0 0 15px rgba(0, 255, 255, 0.1), inset 0 0 15px rgba(0, 255, 255, 0.05);
         }
 
+        /* Toggle switch */
+        .toggle-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .toggle-label {
+            font-family: 'Fira Sans', sans-serif;
+            font-size: 0.95rem;
+            font-weight: 500;
+            color: var(--text-primary);
+        }
+
+        .toggle-switch {
+            position: relative;
+            width: 52px;
+            height: 28px;
+            flex-shrink: 0;
+        }
+
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .toggle-slider {
+            position: absolute;
+            inset: 0;
+            background: var(--bg-primary);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .toggle-slider::before {
+            content: '';
+            position: absolute;
+            top: 3px;
+            left: 3px;
+            width: 20px;
+            height: 20px;
+            background: var(--text-muted);
+            border-radius: 50%;
+            transition: all 0.3s ease;
+        }
+
+        .toggle-switch input:checked + .toggle-slider {
+            background: var(--accent-dim);
+            border-color: var(--accent);
+        }
+
+        .toggle-switch input:checked + .toggle-slider::before {
+            transform: translateX(24px);
+            background: var(--accent);
+            box-shadow: 0 0 10px var(--accent-glow);
+        }
+
+        .toggle-switch input:focus-visible + .toggle-slider {
+            outline: 2px solid var(--accent);
+            outline-offset: 2px;
+        }
+
         /* Brightness control */
         .brightness-control {
             display: flex;
@@ -267,6 +332,17 @@
         </div>
 
         <div class="card">
+            <div class="card-label">Auto Blink</div>
+            <div class="toggle-row">
+                <span class="toggle-label">Periodic blink</span>
+                <label class="toggle-switch">
+                    <input type="checkbox" id="blinkToggle" aria-label="Toggle auto blink">
+                    <span class="toggle-slider"></span>
+                </label>
+            </div>
+        </div>
+
+        <div class="card">
             <div class="card-label">Brightness</div>
             <div class="brightness-control">
                 <div class="brightness-header">
@@ -284,6 +360,7 @@
         const exprEl = document.getElementById('expressions');
         const brightnessEl = document.getElementById('brightness');
         const bvalEl = document.getElementById('bval');
+        const blinkToggleEl = document.getElementById('blinkToggle');
 
         function connect() {
             const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
@@ -291,6 +368,7 @@
             ws.onopen = () => {
                 statusEl.textContent = 'ONLINE';
                 statusEl.className = 'status connected';
+                loadBlinkState();
             };
             ws.onclose = () => {
                 statusEl.textContent = 'OFFLINE';
@@ -306,6 +384,7 @@
             } else {
                 const path = data.action === 'set' ? 'expression/' + data.name
                            : data.action === 'brightness' ? 'brightness/' + data.value
+                           : data.action === 'toggle_blink' ? 'blink/toggle'
                            : data.action;
                 fetch('/api/' + path, { method: 'POST' });
             }
@@ -318,12 +397,16 @@
             send({ action: 'brightness', value: parseInt(brightnessEl.value) });
         });
 
+        blinkToggleEl.addEventListener('change', () => {
+            send({ action: 'toggle_blink' });
+        });
+
         async function loadExpressions() {
             try {
                 const res = await fetch('/api/expressions');
                 const { expressions } = await res.json();
                 exprEl.innerHTML = '';
-                expressions.forEach(name => {
+                expressions.filter(name => name !== 'blink').forEach(name => {
                     const btn = document.createElement('button');
                     btn.textContent = name;
                     btn.setAttribute('type', 'button');
@@ -339,8 +422,19 @@
             }
         }
 
+        async function loadBlinkState() {
+            try {
+                const res = await fetch('/api/blink/state');
+                const { enabled } = await res.json();
+                blinkToggleEl.checked = enabled;
+            } catch (e) {
+                console.error('Failed to load blink state:', e);
+            }
+        }
+
         connect();
         loadExpressions();
+        loadBlinkState();
     </script>
 </body>
 </html>
