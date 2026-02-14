@@ -2,6 +2,7 @@
 
 Based on the character design sheet for 'Andy' protogen.
 """
+import math
 from pathlib import Path
 from PIL import Image, ImageDraw
 
@@ -11,6 +12,7 @@ CYAN = (0, 255, 200)  # Main LED color from character design
 RED = (255, 60, 60)   # Accent color for angry expression
 BSOD_BLUE = (0, 120, 215)  # Windows BSOD background
 WHITE = (255, 255, 255)
+YELLOW = (255, 200, 0)  # Warning color for loading_bar
 
 # Eye centers
 LEFT_EYE = (32, 16)
@@ -370,6 +372,110 @@ def generate_blink_frames(base_img: Image.Image, n_frames: int = 7):
     return frames
 
 
+def generate_loading_spinner_frames() -> list[Image.Image]:
+    """Generate a spinning dots animation (8 frames).
+
+    8 dots arranged in a circle, each frame highlights a different dot
+    with a fading tail of 2-3 trailing dots.
+    """
+    n_dots = 8
+    cx, cy = 64, 16
+    radius = 12
+    dot_r = 2
+    frames = []
+
+    for frame_i in range(n_dots):
+        img = Image.new("RGB", (WIDTH, HEIGHT), BG)
+        draw = ImageDraw.Draw(img)
+
+        for dot_i in range(n_dots):
+            angle = 2 * math.pi * dot_i / n_dots - math.pi / 2  # start from top
+            dx = int(cx + radius * math.cos(angle))
+            dy = int(cy + radius * math.sin(angle))
+
+            # Distance behind the current highlight (wrapping)
+            dist = (frame_i - dot_i) % n_dots
+
+            if dist == 0:
+                brightness = 1.0
+            elif dist == 1:
+                brightness = 0.6
+            elif dist == 2:
+                brightness = 0.3
+            else:
+                brightness = 0.08
+
+            color = (
+                int(CYAN[0] * brightness),
+                int(CYAN[1] * brightness),
+                int(CYAN[2] * brightness),
+            )
+            draw.ellipse([dx - dot_r, dy - dot_r, dx + dot_r, dy + dot_r],
+                         fill=color)
+
+        frames.append(img)
+    return frames
+
+
+def generate_loading_bar_frames() -> list[Image.Image]:
+    """Generate a loading bar + warning flash animation (18 frames).
+
+    Phase A (12 frames): progress bar filling left to right.
+    Phase B (6 frames): yellow warning triangle flashing on/off.
+    """
+    bar_w = 80
+    bar_h = 8
+    bar_x = (WIDTH - bar_w) // 2
+    bar_y = (HEIGHT - bar_h) // 2
+    n_fill = 12
+    n_flash = 6
+    frames = []
+
+    # Phase A: progress bar
+    for i in range(n_fill):
+        img = Image.new("RGB", (WIDTH, HEIGHT), BG)
+        draw = ImageDraw.Draw(img)
+        # Outer frame
+        draw.rectangle([bar_x, bar_y, bar_x + bar_w, bar_y + bar_h],
+                        outline=CYAN)
+        # Inner fill (2px padding)
+        fill_max = bar_w - 3  # inner width
+        fill_w = int(fill_max * (i + 1) / n_fill)
+        if fill_w > 0:
+            draw.rectangle([bar_x + 2, bar_y + 2,
+                            bar_x + 2 + fill_w, bar_y + bar_h - 2],
+                           fill=CYAN)
+        frames.append(img)
+
+    # Phase B: warning triangle flash (3 cycles of on/off)
+    # Build the warning triangle frame
+    tri_cx, tri_cy = 64, 16
+    tri_half_w = 12
+    tri_top_y = tri_cy - 10
+    tri_bot_y = tri_cy + 8
+    tri_points = [
+        (tri_cx, tri_top_y),
+        (tri_cx - tri_half_w, tri_bot_y),
+        (tri_cx + tri_half_w, tri_bot_y),
+    ]
+
+    for i in range(n_flash):
+        img = Image.new("RGB", (WIDTH, HEIGHT), BG)
+        if i % 2 == 0:
+            # Show warning triangle
+            draw = ImageDraw.Draw(img)
+            draw.polygon(tri_points, fill=YELLOW)
+            # Exclamation mark (white !)
+            draw.rectangle([tri_cx - 1, tri_top_y + 5, tri_cx + 1, tri_bot_y - 5],
+                           fill=WHITE)
+            draw.rectangle([tri_cx - 1, tri_bot_y - 3, tri_cx + 1, tri_bot_y - 2],
+                           fill=WHITE)
+        # else: pure black frame (already BG)
+        frames.append(img)
+
+    return frames
+
+
 # ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
@@ -404,6 +510,22 @@ def main():
     for i, frame in enumerate(blink_frames):
         frame.save(blink_dir / f"frame_{i:02d}.png")
     print(f"Generated: {len(blink_frames)} blink frames")
+
+    # Generate loading spinner animation frames
+    spinner_dir = OUT_DIR / "animations" / "loading_spinner"
+    spinner_dir.mkdir(parents=True, exist_ok=True)
+    spinner_frames = generate_loading_spinner_frames()
+    for i, frame in enumerate(spinner_frames):
+        frame.save(spinner_dir / f"frame_{i:02d}.png")
+    print(f"Generated: {len(spinner_frames)} loading_spinner frames")
+
+    # Generate loading bar animation frames
+    bar_dir = OUT_DIR / "animations" / "loading_bar"
+    bar_dir.mkdir(parents=True, exist_ok=True)
+    bar_frames = generate_loading_bar_frames()
+    for i, frame in enumerate(bar_frames):
+        frame.save(bar_dir / f"frame_{i:02d}.png")
+    print(f"Generated: {len(bar_frames)} loading_bar frames")
 
     # Clean up old files that are no longer needed
     old_files = [base_dir / "sad.png"]

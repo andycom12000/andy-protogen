@@ -39,6 +39,18 @@
       "frames_dir": "animations/blink",
       "fps": 15,
       "loop": false
+    },
+    "loading_spinner": {
+      "type": "animation",
+      "frames_dir": "animations/loading_spinner",
+      "fps": 10,
+      "loop": true
+    },
+    "loading_bar": {
+      "type": "animation",
+      "frames_dir": "animations/loading_bar",
+      "fps": 6,
+      "loop": true
     }
   },
   "default": "default"
