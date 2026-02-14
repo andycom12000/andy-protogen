@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+import asyncio
+
+from protogen.animation import AnimationEngine
 from protogen.display.base import DisplayBase
 from protogen.expression import Expression, ExpressionType
 
@@ -11,6 +14,8 @@ class ExpressionManager:
         self._names = sorted(expressions.keys())
         self._current_index = 0
         self.current_name: str | None = None
+        self._animation = AnimationEngine(display)
+        self._animation_task: asyncio.Task | None = None
 
     @property
     def expression_names(self) -> list[str]:
@@ -19,12 +24,19 @@ class ExpressionManager:
     def set_expression(self, name: str) -> None:
         if name not in self._expressions:
             return
+        # 停止正在播放的動畫
+        self._stop_animation()
+
         expr = self._expressions[name]
         self.current_name = name
         self._current_index = self._names.index(name)
 
         if expr.type == ExpressionType.STATIC and expr.image:
             self._display.show_image(expr.image)
+        elif expr.type == ExpressionType.ANIMATION and expr.frames:
+            self._animation_task = asyncio.create_task(
+                self._animation.play(expr.frames, fps=expr.fps, loop=expr.loop)
+            )
 
     def next_expression(self) -> None:
         self._current_index = (self._current_index + 1) % len(self._names)
@@ -33,3 +45,9 @@ class ExpressionManager:
     def prev_expression(self) -> None:
         self._current_index = (self._current_index - 1) % len(self._names)
         self.set_expression(self._names[self._current_index])
+
+    def _stop_animation(self) -> None:
+        self._animation.stop()
+        if self._animation_task is not None:
+            self._animation_task.cancel()
+            self._animation_task = None
