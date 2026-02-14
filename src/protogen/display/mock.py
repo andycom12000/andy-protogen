@@ -45,3 +45,13 @@ class MockDisplay(DisplayBase):
         self.brightness = max(0, min(100, value))
         if self.last_image is not None:
             self._render()
+
+    def pump_events(self) -> bool:
+        """Process pygame events. Returns False if window was closed."""
+        if not self.use_pygame or self._screen is None:
+            return True
+        import pygame
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                return False
+        return True

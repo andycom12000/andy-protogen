@@ -66,6 +66,14 @@ async def async_main() -> None:
             elif cmd.event == InputEvent.SET_BRIGHTNESS:
                 display.set_brightness(cmd.value)
 
+    # pygame 事件迴圈（保持視窗回應）
+    async def pump_display_events():
+        if hasattr(display, 'pump_events'):
+            while True:
+                if not display.pump_events():
+                    return  # 視窗被關閉
+                await asyncio.sleep(1 / 30)
+
     # 優雅關閉
     loop = asyncio.get_event_loop()
     for sig in (signal.SIGINT, signal.SIGTERM):
@@ -77,6 +85,7 @@ async def async_main() -> None:
     await asyncio.gather(
         input_mgr.run_all(),
         handle_commands(),
+        pump_display_events(),
     )
 
 
