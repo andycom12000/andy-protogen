@@ -1,145 +1,324 @@
-"""Generate placeholder Protogen face expressions as 128x32 pixel art PNGs."""
+"""Generate Protogen face expressions as 128x32 pixel art PNGs.
+
+Based on the character design sheet for 'Andy' protogen.
+"""
 from pathlib import Path
 from PIL import Image, ImageDraw
 
 WIDTH, HEIGHT = 128, 32
 BG = (0, 0, 0)
-EYE_COLOR = (0, 255, 200)  # Cyan-ish protogen eye color
+CYAN = (0, 255, 200)  # Main LED color from character design
+RED = (255, 60, 60)   # Accent color for angry expression
+
+# Eye centers
+LEFT_EYE = (32, 16)
+RIGHT_EYE = (96, 16)
 
 OUT_DIR = Path(__file__).parent.parent / "expressions"
 
 
-def draw_eye_v(draw: ImageDraw.ImageDraw, cx: int, cy: int, size: int, flip: bool = False):
-    """Draw a V-shaped (happy) eye."""
-    pts = []
-    if flip:
-        # Inverted V (like ^)
-        pts = [(cx - size, cy + size // 2), (cx, cy - size // 2), (cx + size, cy + size // 2)]
+# ---------------------------------------------------------------------------
+# Helper drawing functions
+# ---------------------------------------------------------------------------
+
+def _mirror_points(points: list[tuple[int, int]], cx_from: int, cx_to: int):
+    """Mirror a list of points from one eye center X to another."""
+    return [(cx_to - (x - cx_from), y) for x, y in points]
+
+
+def _draw_default_eye(draw: ImageDraw.ImageDraw, cx: int, cy: int,
+                      color=CYAN, is_left: bool = True):
+    """Draw a filled ellipse eye tilted slightly downward toward the nose.
+
+    From the character design: filled oval eyes with a slight inward tilt.
+    """
+    import PIL.Image
+    import math
+
+    rx, ry = 10, 7  # ellipse radii
+    # Tilt angle: inner side slightly lower
+    angle = -15 if is_left else 15  # degrees
+
+    # Draw rotated filled ellipse using a temporary image
+    size = max(rx, ry) * 2 + 4
+    tmp = PIL.Image.new("RGBA", (size * 2, size * 2), (0, 0, 0, 0))
+    tmp_draw = ImageDraw.Draw(tmp)
+    tcx, tcy = size, size
+    tmp_draw.ellipse([tcx - rx, tcy - ry, tcx + rx, tcy + ry],
+                     fill=(*color, 255))
+    tmp = tmp.rotate(angle, center=(tcx, tcy), resample=PIL.Image.BILINEAR)
+
+    # Paste onto the main image
+    draw._image.paste(color, (cx - size, cy - size), tmp.split()[3])
+
+
+def _draw_arc_eye(draw: ImageDraw.ImageDraw, cx: int, cy: int, color=CYAN):
+    """Draw an upward arc eye like ^ ^ (happy squint)."""
+    w, h = 10, 8
+    draw.arc([cx - w, cy - h, cx + w, cy + h], 200, 340, fill=color, width=3)
+
+
+def _draw_angry_eye(draw: ImageDraw.ImageDraw, cx: int, cy: int,
+                    is_left: bool, color=RED):
+    """Draw an angry narrow eye with brow line pressing down."""
+    w = 10
+    # Narrow slit eye
+    slit_h = 2
+    draw.rectangle([cx - w, cy - slit_h, cx + w, cy + slit_h], fill=color)
+
+    # Angry brow line — slants inward-down
+    brow_y_outer = cy - 8
+    brow_y_inner = cy - 4
+    if is_left:
+        draw.line([(cx - w, brow_y_outer), (cx + w, brow_y_inner)],
+                  fill=color, width=2)
     else:
-        # V shape
-        pts = [(cx - size, cy - size // 2), (cx, cy + size // 2), (cx + size, cy - size // 2)]
-    draw.line(pts, fill=EYE_COLOR, width=2)
+        draw.line([(cx - w, brow_y_inner), (cx + w, brow_y_outer)],
+                  fill=color, width=2)
 
 
-def draw_eye_round(draw: ImageDraw.ImageDraw, cx: int, cy: int, r: int):
-    """Draw a round eye."""
-    draw.ellipse([cx - r, cy - r, cx + r, cy + r], outline=EYE_COLOR, width=2)
+def _draw_round_eye(draw: ImageDraw.ImageDraw, cx: int, cy: int,
+                    outer_r: int = 9, inner_r: int = 3, color=CYAN):
+    """Draw a round eye filled solid."""
+    draw.ellipse([cx - outer_r, cy - outer_r, cx + outer_r, cy + outer_r],
+                 fill=color)
 
 
-def draw_eye_half_closed(draw: ImageDraw.ImageDraw, cx: int, cy: int, w: int):
-    """Draw a half-closed eye (horizontal line)."""
-    draw.line([(cx - w, cy), (cx + w, cy)], fill=EYE_COLOR, width=3)
+def _draw_teardrop_eye(draw: ImageDraw.ImageDraw, cx: int, cy: int,
+                       color=CYAN):
+    """Draw an oval eye with teardrop lines below."""
+    # Oval eye (outline only, no pupil — teary/watery look)
+    rx, ry = 8, 6
+    draw.ellipse([cx - rx, cy - ry, cx + rx, cy + ry], outline=color, width=2)
+    # Teardrop lines (brighter cyan)
+    bright = (100, 255, 240)
+    draw.line([(cx - 3, cy + ry + 1), (cx - 3, cy + ry + 7)],
+              fill=bright, width=2)
+    draw.line([(cx + 3, cy + ry + 1), (cx + 3, cy + ry + 5)],
+              fill=bright, width=2)
 
 
-def draw_eye_slant(draw: ImageDraw.ImageDraw, cx: int, cy: int, size: int, angry: bool = False):
-    """Draw a slanted eye for angry/determined expression."""
-    if angry:
-        # Inner side high, outer side low (for left eye, mirror for right)
-        draw.line([(cx - size, cy - size // 3), (cx + size, cy + size // 3)], fill=EYE_COLOR, width=2)
-        draw.line([(cx - size, cy - size // 3 + 4), (cx + size, cy + size // 3 + 4)], fill=EYE_COLOR, width=2)
-    else:
-        draw.line([(cx - size, cy + size // 3), (cx + size, cy - size // 3)], fill=EYE_COLOR, width=2)
+def _draw_flat_eye(draw: ImageDraw.ImageDraw, cx: int, cy: int, color=CYAN):
+    """Draw a half-closed/flat line eye for helpless expression."""
+    w = 10
+    # Main flat line
+    draw.line([(cx - w, cy), (cx + w, cy)], fill=color, width=3)
+    # Slight upper lid curve to show it's half-closed, not fully shut
+    draw.arc([cx - w, cy - 6, cx + w, cy + 2], 200, 340, fill=color, width=2)
 
 
-def generate_happy():
+def _draw_closed_eye(draw: ImageDraw.ImageDraw, cx: int, cy: int,
+                     color=CYAN):
+    """Draw a fully closed eye (horizontal line)."""
+    draw.line([(cx - 10, cy), (cx + 10, cy)], fill=color, width=3)
+
+
+def _draw_nose_dots(draw: ImageDraw.ImageDraw, color=CYAN):
+    """Draw two small dots for the nose."""
+    draw.rectangle([62, 19, 63, 20], fill=color)
+    draw.rectangle([64, 19, 65, 20], fill=color)
+
+
+def _draw_mouth_zigzag(draw: ImageDraw.ImageDraw, color=CYAN):
+    """Draw a zigzag/jagged smile mouth."""
+    # Zigzag smile: a wavy line with teeth-like pattern
+    pts = [
+        (54, 25),
+        (57, 27), (60, 25), (62, 27), (64, 25), (66, 27), (68, 25),
+        (71, 27), (74, 25),
+    ]
+    draw.line(pts, fill=color, width=1)
+
+
+def _draw_mouth_zigzag_flat(draw: ImageDraw.ImageDraw, color=CYAN):
+    """Draw a zigzag flat/angry mouth."""
+    pts = [
+        (54, 26),
+        (57, 27), (60, 26), (62, 27), (64, 26), (66, 27), (68, 26),
+        (71, 27), (74, 26),
+    ]
+    draw.line(pts, fill=color, width=1)
+
+
+def _draw_mouth_zigzag_frown(draw: ImageDraw.ImageDraw, color=CYAN):
+    """Draw a zigzag frown mouth (downward curve with jagged edges)."""
+    pts = [
+        (54, 25),
+        (57, 26), (59, 25), (61, 27), (63, 26), (65, 27), (67, 25),
+        (70, 26), (74, 25),
+    ]
+    draw.line(pts, fill=color, width=1)
+
+
+def _draw_mouth_zigzag_o(draw: ImageDraw.ImageDraw, color=CYAN):
+    """Draw a small zigzag 'o' shaped surprised mouth."""
+    pts = [
+        (61, 25), (63, 24), (65, 25), (67, 26),
+        (66, 28), (64, 29), (62, 28), (61, 26), (61, 25),
+    ]
+    draw.line(pts, fill=color, width=1)
+
+
+# ---------------------------------------------------------------------------
+# Expression generators
+# ---------------------------------------------------------------------------
+
+def generate_default() -> Image.Image:
+    """Default: filled tilted oval eyes, nose dots, zigzag smile."""
     img = Image.new("RGB", (WIDTH, HEIGHT), BG)
     draw = ImageDraw.Draw(img)
-    # Left eye: V shape (happy squint)
-    draw_eye_v(draw, 32, 16, 10)
-    # Right eye: V shape
-    draw_eye_v(draw, 96, 16, 10)
-    # Small mouth arc
-    draw.arc([52, 20, 76, 30], 0, 180, fill=EYE_COLOR, width=1)
+    _draw_default_eye(draw, *LEFT_EYE, is_left=True)
+    _draw_default_eye(draw, *RIGHT_EYE, is_left=False)
+    _draw_nose_dots(draw)
+    _draw_mouth_zigzag(draw)
     return img
 
 
-def generate_sad():
+def generate_happy() -> Image.Image:
+    """Happy: upward arc eyes ^ ^ with zigzag smile."""
     img = Image.new("RGB", (WIDTH, HEIGHT), BG)
     draw = ImageDraw.Draw(img)
-    # Inverted V eyes (sad)
-    draw_eye_v(draw, 32, 16, 10, flip=True)
-    draw_eye_v(draw, 96, 16, 10, flip=True)
-    # Sad mouth
-    draw.arc([52, 22, 76, 32], 180, 360, fill=EYE_COLOR, width=1)
+    _draw_arc_eye(draw, *LEFT_EYE)
+    _draw_arc_eye(draw, *RIGHT_EYE)
+    _draw_nose_dots(draw)
+    _draw_mouth_zigzag(draw)
     return img
 
 
-def generate_angry():
+def generate_angry() -> Image.Image:
+    """Angry: narrow slit eyes with brow lines, red color, zigzag flat mouth."""
     img = Image.new("RGB", (WIDTH, HEIGHT), BG)
     draw = ImageDraw.Draw(img)
-    # Angry slanted eyes
-    draw_eye_slant(draw, 32, 14, 10, angry=True)
-    # Mirror for right eye
-    draw.line([(96 - 10, 14 + 10 // 3), (96 + 10, 14 - 10 // 3)], fill=EYE_COLOR, width=2)
-    draw.line([(96 - 10, 14 + 10 // 3 + 4), (96 + 10, 14 - 10 // 3 + 4)], fill=EYE_COLOR, width=2)
-    # Angry mouth
-    draw.line([(54, 26), (74, 26)], fill=EYE_COLOR, width=2)
+    _draw_angry_eye(draw, *LEFT_EYE, is_left=True)
+    _draw_angry_eye(draw, *RIGHT_EYE, is_left=False)
+    _draw_nose_dots(draw, color=RED)
+    _draw_mouth_zigzag_flat(draw, color=RED)
+    return img
+
+
+def generate_crying() -> Image.Image:
+    """Crying: oval eyes with teardrop lines below, zigzag frown."""
+    img = Image.new("RGB", (WIDTH, HEIGHT), BG)
+    draw = ImageDraw.Draw(img)
+    _draw_teardrop_eye(draw, *LEFT_EYE)
+    _draw_teardrop_eye(draw, *RIGHT_EYE)
+    _draw_nose_dots(draw)
+    _draw_mouth_zigzag_frown(draw)
+    return img
+
+
+def generate_shocked() -> Image.Image:
+    """Shocked: large filled round eyes, zigzag 'o' mouth."""
+    img = Image.new("RGB", (WIDTH, HEIGHT), BG)
+    draw = ImageDraw.Draw(img)
+    _draw_round_eye(draw, *LEFT_EYE, outer_r=10, inner_r=3)
+    _draw_round_eye(draw, *RIGHT_EYE, outer_r=10, inner_r=3)
+    _draw_nose_dots(draw)
+    _draw_mouth_zigzag_o(draw)
+    return img
+
+
+def generate_helpless() -> Image.Image:
+    """Helpless: half-closed flat eyes with zigzag frown."""
+    img = Image.new("RGB", (WIDTH, HEIGHT), BG)
+    draw = ImageDraw.Draw(img)
+    _draw_flat_eye(draw, *LEFT_EYE)
+    _draw_flat_eye(draw, *RIGHT_EYE)
+    _draw_nose_dots(draw)
+    _draw_mouth_zigzag_frown(draw)
     return img
 
 
 def generate_blink_frames(base_img: Image.Image, n_frames: int = 7):
-    """Generate blink animation: eyes close then open."""
+    """Generate blink animation based on default expression.
+
+    7 frames: open -> closing -> closed -> opening -> open
+    Frame progression: 100% -> 66% -> 33% -> 0% -> 33% -> 66% -> 100%
+    """
     frames = []
-    # Extract eye regions and create closing animation
-    for i in range(n_frames):
-        frame = base_img.copy()
+    # Blink curve: how closed the eye is (0=open, 1=fully closed)
+    close_amounts = [0.0, 0.33, 0.66, 1.0, 0.66, 0.33, 0.0]
+
+    for close in close_amounts:
+        frame = Image.new("RGB", (WIDTH, HEIGHT), BG)
         draw = ImageDraw.Draw(frame)
-        progress = i / (n_frames - 1)  # 0 to 1
 
-        if progress <= 0.5:
-            # Closing: 0 -> 0.5
-            close = progress * 2  # 0 to 1
+        if close >= 1.0:
+            # Fully closed — horizontal lines
+            _draw_closed_eye(draw, *LEFT_EYE)
+            _draw_closed_eye(draw, *RIGHT_EYE)
+            _draw_nose_dots(draw)
+            _draw_mouth_zigzag(draw)
+        elif close <= 0.0:
+            # Fully open — copy from base
+            frame = base_img.copy()
         else:
-            # Opening: 0.5 -> 1
-            close = (1 - progress) * 2  # 1 to 0
-
-        # Draw eyes at various stages of closing
-        eye_height = int(10 * (1 - close))
-        if eye_height <= 1:
-            # Fully closed - horizontal line
-            draw_eye_half_closed(draw, 32, 16, 10)
-            draw_eye_half_closed(draw, 96, 16, 10)
-        else:
-            # Partially open V eyes
-            # Clear eye areas first (black boxes)
-            draw.rectangle([18, 6, 46, 26], fill=BG)
-            draw.rectangle([82, 6, 110, 26], fill=BG)
-            draw_eye_v(draw, 32, 16, max(3, eye_height))
-            draw_eye_v(draw, 96, 16, max(3, eye_height))
-            # Redraw mouth
-            draw.arc([52, 20, 76, 30], 0, 180, fill=EYE_COLOR, width=1)
+            # Partially closed: squish the oval eye vertically
+            squished_ry = max(1, int(7 * (1 - close)))
+            if squished_ry < 2:
+                _draw_closed_eye(draw, *LEFT_EYE)
+                _draw_closed_eye(draw, *RIGHT_EYE)
+            else:
+                for (ecx, ecy), is_left in [(LEFT_EYE, True), (RIGHT_EYE, False)]:
+                    rx = 10
+                    angle = -15 if is_left else 15
+                    size = max(rx, squished_ry) * 2 + 4
+                    tmp = Image.new("RGBA", (size * 2, size * 2), (0, 0, 0, 0))
+                    tmp_draw = ImageDraw.Draw(tmp)
+                    tc = size
+                    tmp_draw.ellipse([tc - rx, tc - squished_ry, tc + rx, tc + squished_ry],
+                                     fill=(*CYAN, 255))
+                    tmp = tmp.rotate(angle, center=(tc, tc), resample=Image.BILINEAR)
+                    frame.paste(CYAN, (ecx - size, ecy - size), tmp.split()[3])
+            # Always draw nose and mouth on blink frames
+            _draw_nose_dots(draw)
+            _draw_mouth_zigzag(draw)
 
         frames.append(frame)
     return frames
 
 
+# ---------------------------------------------------------------------------
+# Main
+# ---------------------------------------------------------------------------
+
 def main():
-    # Create directories
     base_dir = OUT_DIR / "base"
     base_dir.mkdir(parents=True, exist_ok=True)
     blink_dir = OUT_DIR / "animations" / "blink"
     blink_dir.mkdir(parents=True, exist_ok=True)
 
-    # Generate static expressions
-    happy = generate_happy()
-    happy.save(base_dir / "happy.png")
-    print("Generated: happy.png")
+    # Generate all static expressions
+    expressions = {
+        "default": generate_default,
+        "happy": generate_happy,
+        "angry": generate_angry,
+        "crying": generate_crying,
+        "shocked": generate_shocked,
+        "helpless": generate_helpless,
+    }
 
-    sad = generate_sad()
-    sad.save(base_dir / "sad.png")
-    print("Generated: sad.png")
+    generated_images = {}
+    for name, gen_func in expressions.items():
+        img = gen_func()
+        img.save(base_dir / f"{name}.png")
+        generated_images[name] = img
+        print(f"Generated: {name}.png")
 
-    angry = generate_angry()
-    angry.save(base_dir / "angry.png")
-    print("Generated: angry.png")
-
-    # Generate blink animation frames
-    blink_frames = generate_blink_frames(happy)
+    # Generate blink animation frames (based on default expression)
+    blink_frames = generate_blink_frames(generated_images["default"])
     for i, frame in enumerate(blink_frames):
         frame.save(blink_dir / f"frame_{i:02d}.png")
     print(f"Generated: {len(blink_frames)} blink frames")
 
-    print("Done! All expressions saved to", OUT_DIR)
+    # Clean up old files that are no longer needed
+    old_files = [base_dir / "sad.png"]
+    for f in old_files:
+        if f.exists():
+            f.unlink()
+            print(f"Removed old file: {f.name}")
+
+    print(f"\nDone! All expressions saved to {OUT_DIR}")
 
 
 if __name__ == "__main__":

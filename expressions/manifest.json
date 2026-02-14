@@ -1,19 +1,30 @@
 {
   "expressions": {
+    "default": {
+      "type": "static",
+      "file": "base/default.png",
+      "idle_animation": "blink"
+    },
     "happy": {
       "type": "static",
       "file": "base/happy.png",
       "idle_animation": "blink"
     },
-    "sad": {
-      "type": "static",
-      "file": "base/sad.png",
-      "idle_animation": "blink"
-    },
     "angry": {
       "type": "static",
-      "file": "base/angry.png",
-      "idle_animation": "blink"
+      "file": "base/angry.png"
+    },
+    "crying": {
+      "type": "static",
+      "file": "base/crying.png"
+    },
+    "shocked": {
+      "type": "static",
+      "file": "base/shocked.png"
+    },
+    "helpless": {
+      "type": "static",
+      "file": "base/helpless.png"
     },
     "blink": {
       "type": "animation",
@@ -22,5 +33,5 @@
       "loop": false
     }
   },
-  "default": "happy"
+  "default": "default"
 }
