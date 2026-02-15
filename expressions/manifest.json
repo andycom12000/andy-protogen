@@ -63,6 +63,12 @@
       "generator": "starfield",
       "fps": 20,
       "params": { "star_count": 50, "speed": 1.0, "color": [0, 255, 255] }
+    },
+    "plasma": {
+      "type": "procedural",
+      "generator": "plasma",
+      "fps": 20,
+      "params": { "speed": 1.0, "palette": "cyan" }
     }
   },
   "default": "default"

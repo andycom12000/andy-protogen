@@ -126,3 +126,24 @@ def test_starfield_default_params():
     gen = StarfieldGenerator(128, 32, {})
     frame = gen.render(0.5)
     assert frame.size == (128, 32)
+
+
+# --- Plasma ---
+
+from protogen.generators.plasma import PlasmaGenerator
+
+
+def test_plasma_renders():
+    """Plasma generator produces colorful frames."""
+    gen = PlasmaGenerator(128, 32, {"speed": 1.0})
+    frame = gen.render(1.0)
+    assert frame.size == (128, 32)
+    pixels = list(frame.getdata())
+    non_black = [p for p in pixels if p != (0, 0, 0)]
+    assert len(non_black) > 0
+
+
+def test_plasma_default_params():
+    gen = PlasmaGenerator(128, 32, {})
+    frame = gen.render(0.5)
+    assert frame.size == (128, 32)
