@@ -729,6 +729,7 @@
         });
         brightnessEl.addEventListener('change', () => {
             send({ action: 'brightness', value: parseInt(brightnessEl.value) });
+            saveLocal('brightness', parseInt(brightnessEl.value));
         });
 
         blinkToggleEl.addEventListener('change', () => {
@@ -864,6 +865,7 @@
 
         sysToggle.addEventListener('click', () => {
             sysStatusOpen = !sysStatusOpen;
+            saveLocal('sysStatusOpen', sysStatusOpen);
             sysGrid.style.display = sysStatusOpen ? '' : 'none';
             sysToggle.classList.toggle('expanded', sysStatusOpen);
             if (sysStatusOpen) {
@@ -874,6 +876,10 @@
                 sysStatusTimer = null;
             }
         });
+
+        if (loadLocal('sysStatusOpen', false)) {
+            sysToggle.click();
+        }
 
         function formatUptime(seconds) {
             if (seconds == null) return 'N/A';
@@ -898,6 +904,24 @@
                 document.getElementById('sysWifi').textContent = valOrNA(d.wifi_signal, ' dBm');
                 document.getElementById('sysFps').textContent = valOrNA(d.display_fps, ' fps');
             } catch (_) {}
+        }
+
+        /* localStorage persistence */
+        function saveLocal(key, value) {
+            try { localStorage.setItem('protogen:' + key, JSON.stringify(value)); } catch(_) {}
+        }
+        function loadLocal(key, fallback) {
+            try {
+                const v = localStorage.getItem('protogen:' + key);
+                return v !== null ? JSON.parse(v) : fallback;
+            } catch(_) { return fallback; }
+        }
+
+        const savedBrightness = loadLocal('brightness', null);
+        if (savedBrightness !== null) {
+            brightnessEl.value = savedBrightness;
+            bvalEl.textContent = savedBrightness + '%';
+            updateSliderFill();
         }
 
         /* Effect parameter controls */
