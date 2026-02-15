@@ -1,16 +1,17 @@
 from __future__ import annotations
 
 import asyncio
+import io
 import signal
 from pathlib import Path
 
 from protogen.commands import InputEvent
 from protogen.config import Config
-from protogen.expression import load_expressions
+from protogen.expression import load_expressions, load_effects
 from protogen.expression_manager import ExpressionManager
 from protogen.input_manager import InputManager
 from protogen.boot_animation import play_boot_animation
-from protogen.generators import register_generators
+from protogen.generators import register_generators, GENERATORS
 from protogen.render_pipeline import RenderPipeline
 
 
@@ -39,6 +40,7 @@ async def async_main() -> None:
     display.set_brightness(config.display.brightness)
 
     expressions = load_expressions(config.expressions_dir)
+    effects = load_effects(config.expressions_dir)
     pipeline = RenderPipeline(display)
     expr_mgr = ExpressionManager(
         pipeline, expressions,
@@ -47,6 +49,19 @@ async def async_main() -> None:
         transition_duration_ms=config.transition_duration_ms,
     )
     input_mgr = InputManager()
+
+    def make_effect_thumbnail(name: str) -> bytes | None:
+        effect = effects.get(name)
+        if effect is None:
+            return None
+        gen_cls = GENERATORS.get(effect.generator_name)
+        if gen_cls is None:
+            return None
+        gen = gen_cls(display.width, display.height, effect.generator_params)
+        img = gen.render(0.0)
+        buf = io.BytesIO()
+        img.save(buf, format="PNG")
+        return buf.getvalue()
 
     # 註冊輸入來源
     if not config.display.mock:
@@ -62,7 +77,9 @@ async def async_main() -> None:
             get_current_expression=lambda: expr_mgr.current_name,
             get_brightness=lambda: display.brightness,
             get_thumbnail=expr_mgr.get_thumbnail,
-            set_text=expr_mgr.set_text,
+            effect_names=sorted(effects.keys()),
+            get_active_effect=lambda: pipeline.active_effect_name,
+            get_effect_thumbnail=make_effect_thumbnail,
         ))
 
     # 播放開機動畫
@@ -80,9 +97,15 @@ async def async_main() -> None:
             elif cmd.event == InputEvent.SET_BRIGHTNESS:
                 display.set_brightness(cmd.value)
             elif cmd.event == InputEvent.SET_TEXT:
-                expr_mgr.set_text(cmd.value)
+                pipeline.set_effect_text(cmd.value)
             elif cmd.event == InputEvent.TOGGLE_BLINK:
                 expr_mgr.toggle_blink()
+            elif cmd.event == InputEvent.SET_EFFECT:
+                effect = effects.get(cmd.value)
+                if effect is not None:
+                    pipeline.set_effect(effect.generator_name, effect.generator_params, effect.fps)
+            elif cmd.event == InputEvent.CLEAR_EFFECT:
+                pipeline.clear_effect()
 
     # pygame 事件迴圈（保持視窗回應）
     async def pump_display_events():
@@ -104,6 +127,7 @@ async def async_main() -> None:
         input_mgr.run_all(),
         handle_commands(),
         pump_display_events(),
+        pipeline.run_effect_loop(),
     )
 
 

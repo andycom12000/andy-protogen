@@ -51,27 +51,25 @@
       "frames_dir": "animations/loading_bar",
       "fps": 6,
       "loop": true
-    },
+    }
+  },
+  "effects": {
     "matrix_rain": {
-      "type": "procedural",
       "generator": "matrix_rain",
       "fps": 20,
       "params": { "color": [0, 255, 70], "speed": 1.0, "density": 0.3 }
     },
     "starfield": {
-      "type": "procedural",
       "generator": "starfield",
       "fps": 20,
       "params": { "star_count": 50, "speed": 1.0, "color": [0, 255, 255] }
     },
     "plasma": {
-      "type": "procedural",
       "generator": "plasma",
       "fps": 20,
       "params": { "speed": 1.0, "palette": "cyan" }
     },
     "scrolling_text": {
-      "type": "procedural",
       "generator": "scrolling_text",
       "fps": 30,
       "params": { "text": "PROTOGEN", "speed": 50.0, "color": [0, 255, 255] }

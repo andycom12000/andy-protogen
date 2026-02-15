@@ -8,6 +8,8 @@ class InputEvent(Enum):
     TOGGLE_ANIMATION = "toggle_anim"
     TOGGLE_BLINK = "toggle_blink"
     SET_TEXT = "set_text"
+    SET_EFFECT = "set_effect"
+    CLEAR_EFFECT = "clear_effect"
 
 
 @dataclass(frozen=True)

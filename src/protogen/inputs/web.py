@@ -16,11 +16,15 @@ def _create_app(
     get_current_expression: Callable[[], str | None],
     get_brightness: Callable[[], int],
     get_thumbnail: Callable[[str], bytes | None] | None = None,
-    set_text: Callable[[str], None] | None = None,
+    effect_names: list[str] | None = None,
+    get_active_effect: Callable[[], str | None] | None = None,
+    get_effect_thumbnail: Callable[[str], bytes | None] | None = None,
 ):
 
     app = FastAPI()
     static_dir = Path(__file__).parent.parent.parent.parent / "web" / "static"
+    _effect_names = effect_names or []
+    _get_active_effect = get_active_effect or (lambda: None)
 
     @app.get("/")
     async def index():
@@ -58,12 +62,34 @@ def _create_app(
     async def blink_state():
         return {"enabled": get_blink_state()}
 
+    @app.get("/api/effects")
+    async def list_effects():
+        return {"effects": _effect_names}
+
+    @app.get("/api/effects/{name}/thumbnail")
+    async def effect_thumbnail(name: str):
+        if get_effect_thumbnail is None:
+            return Response(status_code=404)
+        data = get_effect_thumbnail(name)
+        if data is None:
+            return Response(status_code=404)
+        return Response(content=data, media_type="image/png")
+
+    @app.post("/api/effect/clear")
+    async def clear_effect():
+        await put(Command(event=InputEvent.CLEAR_EFFECT))
+        return {"status": "ok"}
+
+    @app.post("/api/effect/{name}")
+    async def set_effect(name: str):
+        await put(Command(event=InputEvent.SET_EFFECT, value=name))
+        return {"status": "ok"}
+
     @app.post("/api/text")
     async def post_text(data: dict):
         text = data.get("text", "")
-        if set_text:
-            set_text(text)
-        await put(Command(event=InputEvent.SET_EXPRESSION, value="scrolling_text"))
+        await put(Command(event=InputEvent.SET_TEXT, value=text))
+        await put(Command(event=InputEvent.SET_EFFECT, value="scrolling_text"))
         return {"status": "ok"}
 
     @app.get("/api/state")
@@ -72,6 +98,7 @@ def _create_app(
             "expression": get_current_expression(),
             "brightness": get_brightness(),
             "blink_enabled": get_blink_state(),
+            "active_effect": _get_active_effect(),
         }
 
     @app.websocket("/ws")
@@ -87,10 +114,14 @@ def _create_app(
                     await put(Command(event=InputEvent.SET_BRIGHTNESS, value=data["value"]))
                 elif action == "toggle_blink":
                     await put(Command(event=InputEvent.TOGGLE_BLINK))
+                elif action == "set_effect":
+                    await put(Command(event=InputEvent.SET_EFFECT, value=data["name"]))
+                elif action == "clear_effect":
+                    await put(Command(event=InputEvent.CLEAR_EFFECT))
                 elif action == "set_text":
-                    if set_text:
-                        set_text(data.get("text", ""))
-                    await put(Command(event=InputEvent.SET_EXPRESSION, value="scrolling_text"))
+                    text = data.get("text", "")
+                    await put(Command(event=InputEvent.SET_TEXT, value=text))
+                    await put(Command(event=InputEvent.SET_EFFECT, value="scrolling_text"))
         except Exception:
             pass
 
@@ -108,7 +139,9 @@ class WebInput:
         get_current_expression: Callable[[], str | None] | None = None,
         get_brightness: Callable[[], int] | None = None,
         get_thumbnail: Callable[[str], bytes | None] | None = None,
-        set_text: Callable[[str], None] | None = None,
+        effect_names: list[str] | None = None,
+        get_active_effect: Callable[[], str | None] | None = None,
+        get_effect_thumbnail: Callable[[str], bytes | None] | None = None,
     ) -> None:
         self._port = port
         self._expression_names = expression_names or []
@@ -116,7 +149,9 @@ class WebInput:
         self._get_current_expression = get_current_expression or (lambda: None)
         self._get_brightness = get_brightness or (lambda: 100)
         self._get_thumbnail = get_thumbnail
-        self._set_text = set_text
+        self._effect_names = effect_names or []
+        self._get_active_effect = get_active_effect or (lambda: None)
+        self._get_effect_thumbnail = get_effect_thumbnail
 
     async def run(self, put: Callable[[Command], Awaitable[None]]) -> None:
         import uvicorn
@@ -125,7 +160,9 @@ class WebInput:
             self._expression_names, put, self._get_blink_state,
             self._get_current_expression, self._get_brightness,
             get_thumbnail=self._get_thumbnail,
-            set_text=self._set_text,
+            effect_names=self._effect_names,
+            get_active_effect=self._get_active_effect,
+            get_effect_thumbnail=self._get_effect_thumbnail,
         )
         config = uvicorn.Config(app, host="0.0.0.0", port=self._port, log_level="info", ws="wsproto")
         server = uvicorn.Server(config)

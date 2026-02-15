@@ -10,7 +10,6 @@ from PIL import Image
 from protogen.animation import AnimationEngine
 from protogen.display.base import DisplayBase
 from protogen.expression import Expression, ExpressionType
-from protogen.generators import ProceduralGenerator, GENERATORS
 
 logger = logging.getLogger(__name__)
 
@@ -35,8 +34,6 @@ class ExpressionManager:
         self._blink_interval_min = blink_interval_min
         self._blink_interval_max = blink_interval_max
         self._transition_duration_ms = transition_duration_ms
-        self._current_generator: ProceduralGenerator | None = None
-        self._pending_text: str | None = None
 
     @property
     def expression_names(self) -> list[str]:
@@ -63,13 +60,6 @@ class ExpressionManager:
             new_frame = expr.image
         elif expr.type == ExpressionType.ANIMATION and expr.frames:
             new_frame = expr.frames[0]
-        elif expr.type == ExpressionType.PROCEDURAL and expr.generator_name:
-            gen_cls = GENERATORS.get(expr.generator_name)
-            if gen_cls is None:
-                return
-            new_frame = gen_cls(
-                self._display.width, self._display.height, self._effective_params(expr)
-            ).render(0.0)
         else:
             return
 
@@ -106,23 +96,11 @@ class ExpressionManager:
 
     def _show_expression(self, expr: Expression) -> None:
         """Display an expression immediately (no transition)."""
-        self._current_generator = None
         if expr.type == ExpressionType.STATIC and expr.image:
             self._display.show_image(expr.image)
         elif expr.type == ExpressionType.ANIMATION and expr.frames:
             self._animation_task = asyncio.create_task(
                 self._animation.play(expr.frames, fps=expr.fps, loop=expr.loop)
-            )
-        elif expr.type == ExpressionType.PROCEDURAL and expr.generator_name:
-            gen_cls = GENERATORS.get(expr.generator_name)
-            if gen_cls is None:
-                return
-            generator = gen_cls(
-                self._display.width, self._display.height, self._effective_params(expr)
-            )
-            self._current_generator = generator
-            self._animation_task = asyncio.create_task(
-                self._animation.play_procedural(generator, fps=expr.fps)
             )
 
     def toggle_blink(self) -> bool:
@@ -142,7 +120,6 @@ class ExpressionManager:
                 if not self._blink_enabled:
                     break
 
-                # 只在靜態表情且有 idle_animation 時觸發
                 if self.current_name is None:
                     continue
                 current_expr = self._expressions.get(self.current_name)
@@ -157,12 +134,10 @@ class ExpressionManager:
                 if blink_expr is None or not blink_expr.frames:
                     continue
 
-                # 播放眨眼動畫
                 await self._animation.play(
                     blink_expr.frames, fps=blink_expr.fps, loop=False
                 )
 
-                # 動畫結束後恢復靜態圖
                 if self._blink_enabled and current_expr.image:
                     self._display.show_image(current_expr.image)
         except asyncio.CancelledError:
@@ -181,14 +156,6 @@ class ExpressionManager:
             img = expr.image
         elif expr.type == ExpressionType.ANIMATION and expr.frames:
             img = expr.frames[0]
-        elif expr.type == ExpressionType.PROCEDURAL and expr.generator_name:
-            gen_cls = GENERATORS.get(expr.generator_name)
-            if gen_cls is None:
-                return None
-            generator = gen_cls(
-                self._display.width, self._display.height, expr.generator_params
-            )
-            img = generator.render(0.0)
 
         if img is None:
             return None
@@ -196,19 +163,6 @@ class ExpressionManager:
         buf = io.BytesIO()
         img.save(buf, format="PNG")
         return buf.getvalue()
-
-    def set_text(self, text: str) -> None:
-        """Update scrolling text. Stores text for next generator creation."""
-        self._pending_text = text
-        if self._current_generator is not None and hasattr(self._current_generator, "set_text"):
-            self._current_generator.set_text(text)
-
-    def _effective_params(self, expr: Expression) -> dict:
-        """Return generator params, injecting pending text for scrolling_text."""
-        params = expr.generator_params
-        if self._pending_text is not None and expr.generator_name == "scrolling_text":
-            params = {**params, "text": self._pending_text}
-        return params
 
     def _stop_animation(self) -> None:
         self._animation.stop()

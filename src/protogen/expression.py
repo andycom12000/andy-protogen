@@ -11,7 +11,6 @@ from PIL import Image
 class ExpressionType(Enum):
     STATIC = "static"
     ANIMATION = "animation"
-    PROCEDURAL = "procedural"
 
 
 @dataclass
@@ -24,8 +23,6 @@ class Expression:
     loop: bool = True
     idle_animation: str | None = None
     next_expression: str | None = None
-    generator_name: str | None = None
-    generator_params: dict = field(default_factory=dict)
 
 
 def load_expressions(expressions_dir: str | Path) -> dict[str, Expression]:
@@ -59,14 +56,30 @@ def load_expressions(expressions_dir: str | Path) -> dict[str, Expression]:
                 loop=data.get("loop", True),
                 next_expression=data.get("next"),
             )
-        elif expr_type == ExpressionType.PROCEDURAL:
-            result[name] = Expression(
-                name=name,
-                type=expr_type,
-                generator_name=data["generator"],
-                generator_params=data.get("params", {}),
-                fps=data.get("fps", 30),
-                loop=True,
-            )
 
+    return result
+
+
+@dataclass
+class Effect:
+    name: str
+    generator_name: str
+    generator_params: dict = field(default_factory=dict)
+    fps: int = 20
+
+
+def load_effects(expressions_dir: str | Path) -> dict[str, Effect]:
+    expressions_dir = Path(expressions_dir)
+    manifest_path = expressions_dir / "manifest.json"
+    with open(manifest_path, encoding="utf-8") as f:
+        manifest = json.load(f)
+
+    result: dict[str, Effect] = {}
+    for name, data in manifest.get("effects", {}).items():
+        result[name] = Effect(
+            name=name,
+            generator_name=data["generator"],
+            generator_params=data.get("params", {}),
+            fps=data.get("fps", 20),
+        )
     return result
