@@ -140,10 +140,14 @@
 
         .expressions button {
             position: relative;
-            min-height: 56px;
-            padding: 14px 8px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+            min-height: 72px;
+            padding: 10px 8px;
             font-family: 'Fira Sans', sans-serif;
-            font-size: 0.95rem;
+            font-size: 0.8rem;
             font-weight: 500;
             text-transform: capitalize;
             border: 1px solid var(--border);
@@ -153,6 +157,14 @@
             cursor: pointer;
             transition: all 0.2s ease;
             -webkit-tap-highlight-color: transparent;
+        }
+
+        .expressions button img {
+            width: 100%;
+            max-height: 32px;
+            object-fit: contain;
+            image-rendering: pixelated;
+            border-radius: 4px;
         }
 
         .expressions button:hover {
@@ -447,7 +459,14 @@
                 exprEl.innerHTML = '';
                 expressions.filter(name => name !== 'blink').forEach(name => {
                     const btn = document.createElement('button');
-                    btn.textContent = displayName(name);
+                    const img = document.createElement('img');
+                    img.src = `/api/expressions/${name}/thumbnail`;
+                    img.alt = displayName(name);
+                    img.loading = 'lazy';
+                    btn.appendChild(img);
+                    const label = document.createElement('span');
+                    label.textContent = displayName(name);
+                    btn.appendChild(label);
                     btn.dataset.expr = name;
                     btn.setAttribute('type', 'button');
                     btn.onclick = () => {
