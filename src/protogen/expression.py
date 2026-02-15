@@ -11,6 +11,7 @@ from PIL import Image
 class ExpressionType(Enum):
     STATIC = "static"
     ANIMATION = "animation"
+    PROCEDURAL = "procedural"
 
 
 @dataclass
@@ -23,6 +24,8 @@ class Expression:
     loop: bool = True
     idle_animation: str | None = None
     next_expression: str | None = None
+    generator_name: str | None = None
+    generator_params: dict = field(default_factory=dict)
 
 
 def load_expressions(expressions_dir: str | Path) -> dict[str, Expression]:
@@ -55,6 +58,15 @@ def load_expressions(expressions_dir: str | Path) -> dict[str, Expression]:
                 fps=data.get("fps", 12),
                 loop=data.get("loop", True),
                 next_expression=data.get("next"),
+            )
+        elif expr_type == ExpressionType.PROCEDURAL:
+            result[name] = Expression(
+                name=name,
+                type=expr_type,
+                generator_name=data["generator"],
+                generator_params=data.get("params", {}),
+                fps=data.get("fps", 30),
+                loop=True,
             )
 
     return result

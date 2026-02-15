@@ -10,6 +10,7 @@ from PIL import Image
 from protogen.animation import AnimationEngine
 from protogen.display.base import DisplayBase
 from protogen.expression import Expression, ExpressionType
+from protogen.generators import ProceduralGenerator, GENERATORS
 
 logger = logging.getLogger(__name__)
 
@@ -34,6 +35,7 @@ class ExpressionManager:
         self._blink_interval_min = blink_interval_min
         self._blink_interval_max = blink_interval_max
         self._transition_duration_ms = transition_duration_ms
+        self._current_generator: ProceduralGenerator | None = None
 
     @property
     def expression_names(self) -> list[str]:
@@ -60,6 +62,13 @@ class ExpressionManager:
             new_frame = expr.image
         elif expr.type == ExpressionType.ANIMATION and expr.frames:
             new_frame = expr.frames[0]
+        elif expr.type == ExpressionType.PROCEDURAL and expr.generator_name:
+            gen_cls = GENERATORS.get(expr.generator_name)
+            if gen_cls is None:
+                return
+            new_frame = gen_cls(
+                self._display.width, self._display.height, expr.generator_params
+            ).render(0.0)
         else:
             return
 
@@ -96,11 +105,23 @@ class ExpressionManager:
 
     def _show_expression(self, expr: Expression) -> None:
         """Display an expression immediately (no transition)."""
+        self._current_generator = None
         if expr.type == ExpressionType.STATIC and expr.image:
             self._display.show_image(expr.image)
         elif expr.type == ExpressionType.ANIMATION and expr.frames:
             self._animation_task = asyncio.create_task(
                 self._animation.play(expr.frames, fps=expr.fps, loop=expr.loop)
+            )
+        elif expr.type == ExpressionType.PROCEDURAL and expr.generator_name:
+            gen_cls = GENERATORS.get(expr.generator_name)
+            if gen_cls is None:
+                return
+            generator = gen_cls(
+                self._display.width, self._display.height, expr.generator_params
+            )
+            self._current_generator = generator
+            self._animation_task = asyncio.create_task(
+                self._animation.play_procedural(generator, fps=expr.fps)
             )
 
     def toggle_blink(self) -> bool:
@@ -159,6 +180,14 @@ class ExpressionManager:
             img = expr.image
         elif expr.type == ExpressionType.ANIMATION and expr.frames:
             img = expr.frames[0]
+        elif expr.type == ExpressionType.PROCEDURAL and expr.generator_name:
+            gen_cls = GENERATORS.get(expr.generator_name)
+            if gen_cls is None:
+                return None
+            generator = gen_cls(
+                self._display.width, self._display.height, expr.generator_params
+            )
+            img = generator.render(0.0)
 
         if img is None:
             return None
