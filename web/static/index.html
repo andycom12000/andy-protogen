@@ -460,6 +460,42 @@
             color: var(--accent);
         }
 
+        .effect-params {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-top: 14px;
+            padding-top: 14px;
+            border-top: 1px solid var(--border);
+        }
+
+        .effect-param-row {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .effect-param-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+        }
+
+        .effect-param-label {
+            font-family: 'Fira Code', monospace;
+            font-size: 0.65rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-muted);
+        }
+
+        .effect-param-value {
+            font-family: 'Fira Code', monospace;
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--accent);
+        }
+
         /* 小螢幕響應式 */
         @media (max-width: 374px) {
             .expressions, .effects-grid {
@@ -493,6 +529,7 @@
         <div class="card">
             <div class="card-label">Effects</div>
             <div class="effects-grid" id="effects"></div>
+            <div class="effect-params" id="effectParams" style="display:none"></div>
         </div>
 
         <div class="card">
@@ -648,6 +685,11 @@
                     : btn.dataset.effect === '__none__';
                 btn.classList.toggle('active', isActive);
             });
+            if (name && EFFECT_PARAMS[name]) {
+                renderEffectParams(name);
+            } else {
+                hideEffectParams();
+            }
         }
 
         brightnessEl.addEventListener('input', () => {
@@ -825,6 +867,111 @@
                 document.getElementById('sysWifi').textContent = valOrNA(d.wifi_signal, ' dBm');
                 document.getElementById('sysFps').textContent = valOrNA(d.display_fps, ' fps');
             } catch (_) {}
+        }
+
+        /* Effect parameter controls */
+        const effectParamsEl = document.getElementById('effectParams');
+        const EFFECT_PARAMS = {
+            matrix_rain: [
+                { key: 'speed', label: 'Speed', min: 0.2, max: 3.0, step: 0.1, default: 1.0 },
+                { key: 'density', label: 'Density', min: 0.1, max: 0.8, step: 0.05, default: 0.3 },
+            ],
+            starfield: [
+                { key: 'speed', label: 'Speed', min: 0.2, max: 3.0, step: 0.1, default: 1.0 },
+                { key: 'star_count', label: 'Stars', min: 10, max: 150, step: 5, default: 50 },
+            ],
+            plasma: [
+                { key: 'speed', label: 'Speed', min: 0.2, max: 3.0, step: 0.1, default: 1.0 },
+            ],
+            breathe: [
+                { key: 'period', label: 'Period (s)', min: 1.0, max: 8.0, step: 0.5, default: 3.0 },
+                { key: 'amplitude', label: 'Amplitude', min: 0.1, max: 1.0, step: 0.05, default: 0.5 },
+            ],
+            glitch: [
+                { key: 'intensity', label: 'Intensity', min: 0.05, max: 0.8, step: 0.05, default: 0.3 },
+            ],
+            color_shift: [
+                { key: 'speed', label: 'Speed', min: 0.2, max: 3.0, step: 0.1, default: 1.0 },
+            ],
+            rainbow_sweep: [
+                { key: 'speed', label: 'Speed', min: 0.2, max: 3.0, step: 0.1, default: 1.0 },
+            ],
+        };
+
+        let activeEffectForParams = null;
+        let paramSendTimer = null;
+
+        function renderEffectParams(effectName) {
+            activeEffectForParams = effectName;
+            effectParamsEl.innerHTML = '';
+            const params = EFFECT_PARAMS[effectName];
+            if (!params || params.length === 0) {
+                effectParamsEl.style.display = 'none';
+                return;
+            }
+            effectParamsEl.style.display = '';
+            params.forEach(p => {
+                const row = document.createElement('div');
+                row.className = 'effect-param-row';
+
+                const header = document.createElement('div');
+                header.className = 'effect-param-header';
+                const label = document.createElement('span');
+                label.className = 'effect-param-label';
+                label.textContent = p.label;
+                const val = document.createElement('span');
+                val.className = 'effect-param-value';
+                val.textContent = p.default;
+                val.id = 'epval_' + p.key;
+                header.appendChild(label);
+                header.appendChild(val);
+
+                const slider = document.createElement('input');
+                slider.type = 'range';
+                slider.min = p.min;
+                slider.max = p.max;
+                slider.step = p.step;
+                slider.value = p.default;
+                slider.setAttribute('aria-label', p.label);
+                slider.style.setProperty('--fill', ((p.default - p.min) / (p.max - p.min) * 100) + '%');
+
+                slider.addEventListener('input', () => {
+                    val.textContent = slider.value;
+                    slider.style.setProperty('--fill', ((slider.value - p.min) / (p.max - p.min) * 100) + '%');
+                });
+                slider.addEventListener('change', () => {
+                    sendEffectParams();
+                });
+
+                row.appendChild(header);
+                row.appendChild(slider);
+                effectParamsEl.appendChild(row);
+            });
+        }
+
+        function sendEffectParams() {
+            if (!activeEffectForParams) return;
+            const params = EFFECT_PARAMS[activeEffectForParams];
+            if (!params) return;
+            const values = {};
+            params.forEach(p => {
+                const slider = effectParamsEl.querySelector(`input[aria-label="${p.label}"]`);
+                if (slider) values[p.key] = parseFloat(slider.value);
+            });
+            clearTimeout(paramSendTimer);
+            paramSendTimer = setTimeout(() => {
+                fetch(`/api/effect/${activeEffectForParams}/params`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(values),
+                });
+            }, 200);
+        }
+
+        function hideEffectParams() {
+            effectParamsEl.style.display = 'none';
+            effectParamsEl.innerHTML = '';
+            activeEffectForParams = null;
         }
 
         updateSliderFill();
