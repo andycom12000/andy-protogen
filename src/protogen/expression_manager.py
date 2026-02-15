@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import io
 import logging
 import random
 
@@ -146,6 +147,25 @@ class ExpressionManager:
             pass
         except Exception:
             logger.exception("blink loop crashed")
+
+    def get_thumbnail(self, name: str) -> bytes | None:
+        """Return PNG bytes for the expression's preview image."""
+        expr = self._expressions.get(name)
+        if expr is None:
+            return None
+
+        img = None
+        if expr.type == ExpressionType.STATIC and expr.image:
+            img = expr.image
+        elif expr.type == ExpressionType.ANIMATION and expr.frames:
+            img = expr.frames[0]
+
+        if img is None:
+            return None
+
+        buf = io.BytesIO()
+        img.save(buf, format="PNG")
+        return buf.getvalue()
 
     def _stop_animation(self) -> None:
         self._animation.stop()

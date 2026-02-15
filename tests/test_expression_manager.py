@@ -1,4 +1,5 @@
 import asyncio
+import io
 
 import pytest
 from PIL import Image
@@ -132,3 +133,39 @@ async def test_transition_skipped_on_first_expression(mock_display):
     # Should display immediately (no old frame to transition from)
     pixel = mock_display.last_image.getpixel((0, 0))
     assert pixel == (255, 0, 0)
+
+
+def test_get_thumbnail_static(mock_display, sample_expressions):
+    """get_thumbnail returns PNG bytes for a static expression."""
+    mgr = ExpressionManager(mock_display, sample_expressions)
+    data = mgr.get_thumbnail("happy")
+    assert data is not None
+    assert isinstance(data, bytes)
+    # Verify it's valid PNG (starts with PNG header)
+    assert data[:4] == b'\x89PNG'
+
+
+def test_get_thumbnail_animation(mock_display):
+    """get_thumbnail returns first frame PNG for an animation."""
+    frames = [
+        Image.new("RGB", (128, 32), (255, 0, 0)),
+        Image.new("RGB", (128, 32), (0, 255, 0)),
+    ]
+    expressions = {
+        "anim": Expression(
+            name="anim", type=ExpressionType.ANIMATION,
+            frames=frames, fps=12, loop=True,
+        ),
+    }
+    mgr = ExpressionManager(mock_display, expressions)
+    data = mgr.get_thumbnail("anim")
+    assert data is not None
+    # Decode and check it's the first frame (red)
+    img = Image.open(io.BytesIO(data))
+    assert img.getpixel((0, 0)) == (255, 0, 0)
+
+
+def test_get_thumbnail_nonexistent(mock_display, sample_expressions):
+    """get_thumbnail returns None for unknown expression."""
+    mgr = ExpressionManager(mock_display, sample_expressions)
+    assert mgr.get_thumbnail("nonexistent") is None
