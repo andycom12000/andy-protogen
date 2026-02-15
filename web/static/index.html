@@ -131,14 +131,24 @@
             margin-bottom: 14px;
         }
 
-        /* Expression grid */
-        .expressions {
+        /* Expression / Effect grid (shared styles) */
+        .expressions, .effects-grid {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
             gap: 10px;
         }
 
-        .expressions button {
+        /* Grid 佔位高度防止 CLS */
+        .expressions { min-height: 160px; }
+        .effects-grid { min-height: 80px; }
+
+        /* 按鈕淡入動畫 */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(4px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .expressions button, .effects-grid button {
             position: relative;
             display: flex;
             flex-direction: column;
@@ -157,9 +167,10 @@
             cursor: pointer;
             transition: all 0.2s ease;
             -webkit-tap-highlight-color: transparent;
+            animation: fadeIn 0.2s ease both;
         }
 
-        .expressions button img {
+        .expressions button img, .effects-grid button img {
             width: 100%;
             max-height: 32px;
             object-fit: contain;
@@ -167,22 +178,22 @@
             border-radius: 4px;
         }
 
-        .expressions button:hover {
+        .expressions button:hover, .effects-grid button:hover {
             background: var(--bg-card-hover);
             border-color: var(--accent);
             color: var(--accent);
         }
 
-        .expressions button:active {
+        .expressions button:active, .effects-grid button:active {
             transform: scale(0.97);
         }
 
-        .expressions button:focus-visible {
+        .expressions button:focus-visible, .effects-grid button:focus-visible {
             outline: 2px solid var(--accent);
             outline-offset: 2px;
         }
 
-        .expressions button.active {
+        .expressions button.active, .effects-grid button.active {
             border-color: var(--accent);
             background: var(--accent-dim);
             color: var(--accent);
@@ -369,6 +380,33 @@
             color: var(--bg-primary);
         }
 
+        .text-input-row button:focus-visible {
+            outline: 2px solid var(--accent);
+            outline-offset: 2px;
+        }
+
+        .text-input-row button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .text-input-row button:disabled:hover {
+            background: var(--accent-dim);
+            color: var(--accent);
+        }
+
+        .text-input-row button.sent {
+            border-color: var(--success);
+            color: var(--success);
+        }
+
+        /* 小螢幕響應式 */
+        @media (max-width: 374px) {
+            .expressions, .effects-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
         /* Reduced motion */
         @media (prefers-reduced-motion: reduce) {
             *, *::before, *::after {
@@ -390,6 +428,11 @@
         <div class="card">
             <div class="card-label">Expressions</div>
             <div class="expressions" id="expressions"></div>
+        </div>
+
+        <div class="card">
+            <div class="card-label">Effects</div>
+            <div class="effects-grid" id="effects"></div>
         </div>
 
         <div class="card">
@@ -427,12 +470,13 @@
         let ws;
         const statusEl = document.getElementById('status');
         const exprEl = document.getElementById('expressions');
+        const effectsEl = document.getElementById('effects');
         const brightnessEl = document.getElementById('brightness');
         const bvalEl = document.getElementById('bval');
         const blinkToggleEl = document.getElementById('blinkToggle');
         const textInputEl = document.getElementById('textInput');
         const textSendEl = document.getElementById('textSend');
-        /* Friendly display name: "loading_bar" → "Loading Bar" */
+        /* Friendly display name: "loading_bar" -> "Loading Bar" */
         function displayName(id) {
             return id.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
         }
@@ -484,6 +528,10 @@
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ text: data.text }),
                     });
+                } else if (data.action === 'set_effect') {
+                    fetch('/api/effect/' + data.name, { method: 'POST' });
+                } else if (data.action === 'clear_effect') {
+                    fetch('/api/effect/clear', { method: 'POST' });
                 } else {
                     const path = data.action === 'set' ? 'expression/' + data.name
                                : data.action === 'brightness' ? 'brightness/' + data.value
@@ -497,6 +545,15 @@
         function setActiveExpression(name) {
             exprEl.querySelectorAll('button').forEach(btn => {
                 btn.classList.toggle('active', btn.dataset.expr === name);
+            });
+        }
+
+        function setActiveEffect(name) {
+            effectsEl.querySelectorAll('button').forEach(btn => {
+                const isActive = name
+                    ? btn.dataset.effect === name
+                    : btn.dataset.effect === '__none__';
+                btn.classList.toggle('active', isActive);
             });
         }
 
@@ -514,10 +571,17 @@
 
         textSendEl.addEventListener('click', () => {
             const text = textInputEl.value.trim();
-            if (text) {
-                send({ action: 'set_text', text });
-                setActiveExpression('scrolling_text');
-            }
+            if (!text || textSendEl.disabled) return;
+            send({ action: 'set_text', text });
+            setActiveEffect('scrolling_text');
+            textSendEl.disabled = true;
+            textSendEl.textContent = 'Sent!';
+            textSendEl.classList.add('sent');
+            setTimeout(() => {
+                textSendEl.disabled = false;
+                textSendEl.textContent = 'Send';
+                textSendEl.classList.remove('sent');
+            }, 1000);
         });
 
         textInputEl.addEventListener('keydown', (e) => {
@@ -554,6 +618,59 @@
             }
         }
 
+        async function loadEffects() {
+            try {
+                const res = await fetch('/api/effects');
+                const { effects } = await res.json();
+                effectsEl.innerHTML = '';
+
+                // "None" button to clear effect
+                const noneBtn = document.createElement('button');
+                const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+                svg.setAttribute('width', '24');
+                svg.setAttribute('height', '24');
+                svg.setAttribute('viewBox', '0 0 24 24');
+                svg.setAttribute('fill', 'none');
+                svg.setAttribute('stroke', 'currentColor');
+                svg.setAttribute('stroke-width', '2');
+                const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                path.setAttribute('d', 'M18 6L6 18M6 6l12 12');
+                svg.appendChild(path);
+                noneBtn.appendChild(svg);
+                const noneLabel = document.createElement('span');
+                noneLabel.textContent = 'None';
+                noneBtn.appendChild(noneLabel);
+                noneBtn.setAttribute('type', 'button');
+                noneBtn.dataset.effect = '__none__';
+                noneBtn.onclick = () => {
+                    send({ action: 'clear_effect' });
+                    setActiveEffect(null);
+                };
+                effectsEl.appendChild(noneBtn);
+
+                effects.forEach(name => {
+                    const btn = document.createElement('button');
+                    const img = document.createElement('img');
+                    img.src = `/api/effects/${name}/thumbnail`;
+                    img.alt = displayName(name);
+                    img.loading = 'lazy';
+                    btn.appendChild(img);
+                    const label = document.createElement('span');
+                    label.textContent = displayName(name);
+                    btn.appendChild(label);
+                    btn.dataset.effect = name;
+                    btn.setAttribute('type', 'button');
+                    btn.onclick = () => {
+                        send({ action: 'set_effect', name });
+                        setActiveEffect(name);
+                    };
+                    effectsEl.appendChild(btn);
+                });
+            } catch (e) {
+                console.error('Failed to load effects:', e);
+            }
+        }
+
         async function loadState() {
             try {
                 const res = await fetch('/api/state');
@@ -567,6 +684,7 @@
                     updateSliderFill();
                 }
                 blinkToggleEl.checked = state.blink_enabled;
+                setActiveEffect(state.active_effect);
             } catch (e) {
                 console.error('Failed to load state:', e);
             }
@@ -575,6 +693,7 @@
         updateSliderFill();
         connect();
         loadExpressions();
+        loadEffects();
     </script>
 </body>
 </html>
