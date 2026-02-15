@@ -69,6 +69,12 @@
       "generator": "plasma",
       "fps": 20,
       "params": { "speed": 1.0, "palette": "cyan" }
+    },
+    "scrolling_text": {
+      "type": "procedural",
+      "generator": "scrolling_text",
+      "fps": 30,
+      "params": { "text": "PROTOGEN", "speed": 50.0, "color": [0, 255, 255] }
     }
   },
   "default": "default"

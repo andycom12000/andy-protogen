@@ -147,3 +147,31 @@ def test_plasma_default_params():
     gen = PlasmaGenerator(128, 32, {})
     frame = gen.render(0.5)
     assert frame.size == (128, 32)
+
+
+# --- Scrolling Text ---
+
+from protogen.generators.scrolling_text import ScrollingTextGenerator
+
+
+def test_scrolling_text_renders():
+    """Scrolling text generator produces non-black frames with text."""
+    gen = ScrollingTextGenerator(128, 32, {"text": "HELLO", "color": [0, 255, 255]})
+    frame = gen.render(0.5)
+    assert frame.size == (128, 32)
+    pixels = list(frame.getdata())
+    non_black = [p for p in pixels if p != (0, 0, 0)]
+    assert len(non_black) > 0
+
+
+def test_scrolling_text_set_text():
+    """set_text updates the displayed text."""
+    gen = ScrollingTextGenerator(128, 32, {"text": "A"})
+    gen.set_text("NEW TEXT")
+    assert gen._text == "NEW TEXT"
+
+
+def test_scrolling_text_default_params():
+    gen = ScrollingTextGenerator(128, 32, {})
+    frame = gen.render(0.0)
+    assert frame.size == (128, 32)
