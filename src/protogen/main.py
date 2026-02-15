@@ -60,6 +60,7 @@ async def async_main() -> None:
             get_current_expression=lambda: expr_mgr.current_name,
             get_brightness=lambda: display.brightness,
             get_thumbnail=expr_mgr.get_thumbnail,
+            set_text=expr_mgr.set_text,
         ))
 
     # 播放開機動畫
@@ -76,6 +77,8 @@ async def async_main() -> None:
                 expr_mgr.set_expression(cmd.value)
             elif cmd.event == InputEvent.SET_BRIGHTNESS:
                 display.set_brightness(cmd.value)
+            elif cmd.event == InputEvent.SET_TEXT:
+                expr_mgr.set_text(cmd.value)
             elif cmd.event == InputEvent.TOGGLE_BLINK:
                 expr_mgr.toggle_blink()
 

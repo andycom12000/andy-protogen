@@ -16,6 +16,7 @@ def _create_app(
     get_current_expression: Callable[[], str | None],
     get_brightness: Callable[[], int],
     get_thumbnail: Callable[[str], bytes | None] | None = None,
+    set_text: Callable[[str], None] | None = None,
 ):
 
     app = FastAPI()
@@ -57,6 +58,14 @@ def _create_app(
     async def blink_state():
         return {"enabled": get_blink_state()}
 
+    @app.post("/api/text")
+    async def post_text(data: dict):
+        text = data.get("text", "")
+        if set_text:
+            set_text(text)
+        await put(Command(event=InputEvent.SET_EXPRESSION, value="scrolling_text"))
+        return {"status": "ok"}
+
     @app.get("/api/state")
     async def get_state():
         return {
@@ -78,6 +87,10 @@ def _create_app(
                     await put(Command(event=InputEvent.SET_BRIGHTNESS, value=data["value"]))
                 elif action == "toggle_blink":
                     await put(Command(event=InputEvent.TOGGLE_BLINK))
+                elif action == "set_text":
+                    if set_text:
+                        set_text(data.get("text", ""))
+                    await put(Command(event=InputEvent.SET_EXPRESSION, value="scrolling_text"))
         except Exception:
             pass
 
@@ -95,6 +108,7 @@ class WebInput:
         get_current_expression: Callable[[], str | None] | None = None,
         get_brightness: Callable[[], int] | None = None,
         get_thumbnail: Callable[[str], bytes | None] | None = None,
+        set_text: Callable[[str], None] | None = None,
     ) -> None:
         self._port = port
         self._expression_names = expression_names or []
@@ -102,6 +116,7 @@ class WebInput:
         self._get_current_expression = get_current_expression or (lambda: None)
         self._get_brightness = get_brightness or (lambda: 100)
         self._get_thumbnail = get_thumbnail
+        self._set_text = set_text
 
     async def run(self, put: Callable[[Command], Awaitable[None]]) -> None:
         import uvicorn
@@ -110,6 +125,7 @@ class WebInput:
             self._expression_names, put, self._get_blink_state,
             self._get_current_expression, self._get_brightness,
             get_thumbnail=self._get_thumbnail,
+            set_text=self._set_text,
         )
         config = uvicorn.Config(app, host="0.0.0.0", port=self._port, log_level="info", ws="wsproto")
         server = uvicorn.Server(config)

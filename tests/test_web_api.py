@@ -19,9 +19,13 @@ def web_app():
         return None
 
     commands = []
+    texts = []
 
     async def put(cmd: Command) -> None:
         commands.append(cmd)
+
+    def set_text(text: str) -> None:
+        texts.append(text)
 
     app = _create_app(
         expression_names=["happy", "sad"],
@@ -30,8 +34,9 @@ def web_app():
         get_current_expression=lambda: "happy",
         get_brightness=lambda: 80,
         get_thumbnail=get_thumbnail,
+        set_text=set_text,
     )
-    return app, commands
+    return app, commands, texts
 
 
 def _make_png(color: tuple) -> bytes:
@@ -42,7 +47,7 @@ def _make_png(color: tuple) -> bytes:
 
 
 def test_thumbnail_endpoint_returns_png(web_app):
-    app, _ = web_app
+    app, _, _ = web_app
     client = TestClient(app)
     response = client.get("/api/expressions/happy/thumbnail")
     assert response.status_code == 200
@@ -51,7 +56,18 @@ def test_thumbnail_endpoint_returns_png(web_app):
 
 
 def test_thumbnail_endpoint_404_for_unknown(web_app):
-    app, _ = web_app
+    app, _, _ = web_app
     client = TestClient(app)
     response = client.get("/api/expressions/nonexistent/thumbnail")
     assert response.status_code == 404
+
+
+def test_text_endpoint(web_app):
+    app, commands, texts = web_app
+    client = TestClient(app)
+    response = client.post("/api/text", json={"text": "Hello!"})
+    assert response.status_code == 200
+    assert len(commands) == 1
+    assert commands[0].event == InputEvent.SET_EXPRESSION
+    assert commands[0].value == "scrolling_text"
+    assert texts == ["Hello!"]

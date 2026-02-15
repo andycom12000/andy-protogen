@@ -196,6 +196,11 @@ class ExpressionManager:
         img.save(buf, format="PNG")
         return buf.getvalue()
 
+    def set_text(self, text: str) -> None:
+        """Update scrolling text if current expression uses ScrollingTextGenerator."""
+        if self._current_generator is not None and hasattr(self._current_generator, "set_text"):
+            self._current_generator.set_text(text)
+
     def _stop_animation(self) -> None:
         self._animation.stop()
         if self._animation_task is not None:

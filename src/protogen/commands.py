@@ -7,6 +7,7 @@ class InputEvent(Enum):
     SET_BRIGHTNESS = "brightness"
     TOGGLE_ANIMATION = "toggle_anim"
     TOGGLE_BLINK = "toggle_blink"
+    SET_TEXT = "set_text"
 
 
 @dataclass(frozen=True)
