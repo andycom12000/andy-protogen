@@ -35,7 +35,11 @@ async def async_main() -> None:
     display.set_brightness(config.display.brightness)
 
     expressions = load_expressions(config.expressions_dir)
-    expr_mgr = ExpressionManager(display, expressions)
+    expr_mgr = ExpressionManager(
+        display, expressions,
+        blink_interval_min=config.blink_interval_min,
+        blink_interval_max=config.blink_interval_max,
+    )
     input_mgr = InputManager()
 
     # 註冊輸入來源

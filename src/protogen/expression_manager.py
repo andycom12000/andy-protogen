@@ -12,7 +12,13 @@ logger = logging.getLogger(__name__)
 
 
 class ExpressionManager:
-    def __init__(self, display: DisplayBase, expressions: dict[str, Expression]) -> None:
+    def __init__(
+        self,
+        display: DisplayBase,
+        expressions: dict[str, Expression],
+        blink_interval_min: float = 3.0,
+        blink_interval_max: float = 6.0,
+    ) -> None:
         self._display = display
         self._expressions = expressions
         self._names = sorted(expressions.keys())
@@ -21,6 +27,8 @@ class ExpressionManager:
         self._animation_task: asyncio.Task | None = None
         self._blink_enabled: bool = False
         self._blink_task: asyncio.Task | None = None
+        self._blink_interval_min = blink_interval_min
+        self._blink_interval_max = blink_interval_max
 
     @property
     def expression_names(self) -> list[str]:
@@ -59,7 +67,7 @@ class ExpressionManager:
     async def _blink_loop(self) -> None:
         try:
             while self._blink_enabled:
-                await asyncio.sleep(random.uniform(3.0, 6.0))
+                await asyncio.sleep(random.uniform(self._blink_interval_min, self._blink_interval_max))
                 if not self._blink_enabled:
                     break
 
