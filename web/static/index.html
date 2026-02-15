@@ -616,21 +616,31 @@
             brightnessEl.style.setProperty('--fill', brightnessEl.value + '%');
         }
 
+        let reconnectDelay = 2000;
+        const MAX_RECONNECT_DELAY = 32000;
+        let heartbeatTimer = null;
+        let heartbeatTimeout = null;
+
         function connect() {
             const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
             ws = new WebSocket(`${proto}//${location.host}/ws`);
             ws.onopen = () => {
                 statusEl.textContent = 'ONLINE';
                 statusEl.className = 'status connected';
+                reconnectDelay = 2000;
+                startHeartbeat();
                 loadState();
             };
             ws.onclose = () => {
-                statusEl.textContent = 'OFFLINE';
+                statusEl.textContent = 'RECONNECTING...';
                 statusEl.className = 'status disconnected';
-                setTimeout(connect, 2000);
+                stopHeartbeat();
+                setTimeout(connect, reconnectDelay);
+                reconnectDelay = Math.min(reconnectDelay * 2, MAX_RECONNECT_DELAY);
             };
             ws.onerror = () => ws.close();
             ws.onmessage = (e) => {
+                resetHeartbeatTimeout();
                 try {
                     const msg = JSON.parse(e.data);
                     if (msg.expression) {
@@ -646,6 +656,27 @@
                     }
                 } catch (_) {}
             };
+        }
+
+        function startHeartbeat() {
+            stopHeartbeat();
+            heartbeatTimer = setInterval(() => {
+                if (ws && ws.readyState === WebSocket.OPEN) {
+                    ws.send(JSON.stringify({ action: 'ping' }));
+                }
+            }, 25000);
+        }
+
+        function stopHeartbeat() {
+            if (heartbeatTimer) { clearInterval(heartbeatTimer); heartbeatTimer = null; }
+            if (heartbeatTimeout) { clearTimeout(heartbeatTimeout); heartbeatTimeout = null; }
+        }
+
+        function resetHeartbeatTimeout() {
+            if (heartbeatTimeout) clearTimeout(heartbeatTimeout);
+            heartbeatTimeout = setTimeout(() => {
+                if (ws) ws.close();
+            }, 35000);
         }
 
         function send(data) {

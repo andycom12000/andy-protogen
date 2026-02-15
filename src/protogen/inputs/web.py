@@ -144,6 +144,8 @@ def _create_app(
                     text = data.get("text", "")
                     await put(Command(event=InputEvent.SET_TEXT, value=text))
                     await put(Command(event=InputEvent.SET_EFFECT, value="scrolling_text"))
+                elif action == "ping":
+                    pass
                 elif action == "update_effect_params":
                     await put(Command(event=InputEvent.SET_EFFECT, value=data["name"]))
                     await put(Command(event=InputEvent.SET_EFFECT_PARAMS, value=data.get("params", {})))
