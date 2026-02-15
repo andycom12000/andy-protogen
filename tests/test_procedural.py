@@ -105,3 +105,24 @@ def test_matrix_rain_default_params():
     gen = MatrixRainGenerator(128, 32, {})
     frame = gen.render(0.5)
     assert frame.size == (128, 32)
+
+
+# --- Starfield ---
+
+from protogen.generators.starfield import StarfieldGenerator
+
+
+def test_starfield_renders():
+    """Starfield generator produces non-black frames."""
+    gen = StarfieldGenerator(128, 32, {"star_count": 40, "speed": 1.0})
+    frame = gen.render(1.0)
+    assert frame.size == (128, 32)
+    pixels = list(frame.getdata())
+    non_black = [p for p in pixels if p != (0, 0, 0)]
+    assert len(non_black) > 0
+
+
+def test_starfield_default_params():
+    gen = StarfieldGenerator(128, 32, {})
+    frame = gen.render(0.5)
+    assert frame.size == (128, 32)

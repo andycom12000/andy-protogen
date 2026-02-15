@@ -57,6 +57,12 @@
       "generator": "matrix_rain",
       "fps": 20,
       "params": { "color": [0, 255, 70], "speed": 1.0, "density": 0.3 }
+    },
+    "starfield": {
+      "type": "procedural",
+      "generator": "starfield",
+      "fps": 20,
+      "params": { "star_count": 50, "speed": 1.0, "color": [0, 255, 255] }
     }
   },
   "default": "default"
