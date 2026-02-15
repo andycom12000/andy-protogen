@@ -5,6 +5,7 @@ import io
 import logging
 import random
 
+import numpy as np
 from PIL import Image
 
 from protogen.animation import AnimationEngine
@@ -82,13 +83,15 @@ class ExpressionManager:
         duration_s = self._transition_duration_ms / 1000.0
         total_frames = max(1, int(duration_s * fps))
 
-        old_rgba = old_frame.convert("RGBA")
-        new_rgba = new_frame.convert("RGBA")
+        # Pre-compute diff in RGB space (float32, one-time cost)
+        old_arr = np.array(old_frame.convert("RGB"), dtype=np.float32)
+        new_arr = np.array(new_frame.convert("RGB"), dtype=np.float32)
+        diff = new_arr - old_arr
 
         for i in range(1, total_frames + 1):
-            progress = i / total_frames
-            blended = Image.blend(old_rgba, new_rgba, alpha=progress)
-            self._display.show_image(blended.convert("RGB"))
+            alpha = i / total_frames
+            blended = (old_arr + diff * alpha).clip(0, 255).astype(np.uint8)
+            self._display.show_image(Image.fromarray(blended, "RGB"))
             await asyncio.sleep(1.0 / fps)
 
         # After transition completes, show the target expression normally

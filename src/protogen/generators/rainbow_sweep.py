@@ -25,18 +25,18 @@ class RainbowSweepEffect(FrameEffect):
     def apply(self, frame: Image.Image, t: float) -> Image.Image:
         rgb_arr = np.array(frame)
 
-        # Mask: non-black pixels
-        mask = rgb_arr.max(axis=2) > 0
+        # Mask & brightness: single max call
+        channel_max = rgb_arr.max(axis=2)
+        mask = channel_max > 0
         if not mask.any():
             return frame
 
-        # Compute brightness from original (max of RGB channels)
-        brightness = rgb_arr.max(axis=2).astype(np.float32) / 255.0
+        brightness = channel_max.astype(np.float32) * (1.0 / 255.0)
 
         # Hue sweeps across x-axis and shifts over time
         hue = (self._x_grid * 360 + t * self._speed * 120) % 360
 
-        # HSV to RGB conversion (S=1, V=brightness)
+        # HSV to RGB conversion (S=1, V=brightness) using np.choose
         h60 = hue / 60.0
         sector = h60.astype(np.int32) % 6
         f = h60 - np.floor(h60)
@@ -45,16 +45,16 @@ class RainbowSweepEffect(FrameEffect):
         q = v * (1.0 - f)
         u = v * f  # t in standard HSV formula, renamed to avoid shadowing
 
-        out = np.zeros_like(rgb_arr, dtype=np.float32)
-        for i, (r, g, b) in enumerate([
-            (v, u, p), (q, v, p), (p, v, u), (p, q, v), (u, p, v), (v, p, q)
-        ]):
-            s = sector == i
-            out[:, :, 0][s] = r[s]
-            out[:, :, 1][s] = g[s]
-            out[:, :, 2][s] = b[s]
+        # np.choose: select R, G, B per sector in one vectorized call
+        r = np.choose(sector, [v, q, p, p, u, v])
+        g = np.choose(sector, [u, v, v, q, p, p])
+        b = np.choose(sector, [p, p, u, v, v, q])
 
-        result = (out * 255).clip(0, 255).astype(np.uint8)
+        result = np.empty_like(rgb_arr)
+        result[:, :, 0] = (r * 255).clip(0, 255)
+        result[:, :, 1] = (g * 255).clip(0, 255)
+        result[:, :, 2] = (b * 255).clip(0, 255)
+
         # Keep black pixels black
         result[~mask] = 0
-        return Image.fromarray(result, "RGB")
+        return Image.fromarray(result.astype(np.uint8), "RGB")

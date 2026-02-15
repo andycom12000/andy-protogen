@@ -4,7 +4,8 @@ import asyncio
 import time
 from collections import deque
 
-from PIL import Image, ImageChops
+import numpy as np
+from PIL import Image
 
 from protogen.display.base import DisplayBase
 from protogen.generators import ProceduralGenerator, FrameEffect, GENERATORS
@@ -15,7 +16,7 @@ class RenderPipeline(DisplayBase):
 
     Sits between the expression system and the hardware display.
     Effects are rendered as an independent overlay and composited
-    with the expression frame using ImageChops.lighter (pixel-wise max).
+    with the expression frame using pixel-wise max (lighter).
     """
 
     def __init__(self, display: DisplayBase) -> None:
@@ -28,6 +29,8 @@ class RenderPipeline(DisplayBase):
         self._effect_frame: Image.Image | None = None
         self._frame_times: deque[float] = deque(maxlen=30)
         self._pending_text: str | None = None
+        self._black_frame = Image.new("RGB", (self.width, self.height), (0, 0, 0))
+        self._last_base_id: int | None = None
 
     @property
     def active_effect_name(self) -> str | None:
@@ -41,6 +44,7 @@ class RenderPipeline(DisplayBase):
         self._effect_name = name
         self._effect_fps = fps
         self._effect_frame = None
+        self._last_base_id = None
         if self._pending_text is not None and hasattr(self._effect, "set_text"):
             self._effect.set_text(self._pending_text)
             self._pending_text = None
@@ -53,6 +57,7 @@ class RenderPipeline(DisplayBase):
         self._effect = None
         self._effect_name = None
         self._effect_frame = None
+        self._last_base_id = None
         # Re-display pure expression frame
         if self.last_frame is not None:
             self._display.show_image(self.last_frame)
@@ -68,7 +73,11 @@ class RenderPipeline(DisplayBase):
             if self._effect is not None:
                 t = time.monotonic() - start
                 if isinstance(self._effect, FrameEffect) and self.last_frame is not None:
-                    self._effect._base_frame = self.last_frame
+                    # Only update _base_frame when the expression frame changes
+                    frame_id = id(self.last_frame)
+                    if frame_id != self._last_base_id:
+                        self._effect._base_frame = self.last_frame
+                        self._last_base_id = frame_id
                 self._effect_frame = self._effect.render(t)
                 self._push_composited()
             await asyncio.sleep(1.0 / self._effect_fps)
@@ -81,9 +90,12 @@ class RenderPipeline(DisplayBase):
             return
         base = self.last_frame
         if base is None:
-            base = Image.new("RGB", (self.width, self.height), (0, 0, 0))
-        composited = ImageChops.lighter(base, self._effect_frame)
-        self._display.show_image(composited)
+            base = self._black_frame
+        # NumPy pixel-wise max instead of ImageChops.lighter
+        base_arr = np.asarray(base)
+        effect_arr = np.asarray(self._effect_frame)
+        composited_arr = np.maximum(base_arr, effect_arr)
+        self._display.show_image(Image.fromarray(composited_arr, "RGB"))
 
     def get_fps(self) -> float:
         if len(self._frame_times) < 2:

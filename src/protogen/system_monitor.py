@@ -15,17 +15,26 @@ class SystemMonitor:
     Uses psutil when available; returns None for unavailable metrics.
     """
 
-    def __init__(self) -> None:
+    def __init__(self, cache_ttl: float = 2.0) -> None:
         self._psutil = _psutil_module
+        self._cache_ttl = cache_ttl
+        self._cached_status: dict | None = None
+        self._cache_time: float = 0.0
 
     def get_status(self) -> dict:
-        return {
+        now = time.monotonic()
+        if self._cached_status is not None and (now - self._cache_time) < self._cache_ttl:
+            return self._cached_status
+        status = {
             "cpu_temp": self._get_cpu_temp(),
             "cpu_usage": self._get_cpu_usage(),
             "memory_used": self._get_memory_used(),
             "uptime": self._get_uptime(),
             "wifi_signal": self._get_wifi_signal(),
         }
+        self._cached_status = status
+        self._cache_time = now
+        return status
 
     def _get_cpu_temp(self) -> float | None:
         if self._psutil is None:

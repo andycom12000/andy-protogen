@@ -5,6 +5,8 @@ from PIL import Image
 
 from protogen.generators import FrameEffect
 
+_SPEED_FACTOR = 60 * 255 / 360
+
 
 class ColorShiftEffect(FrameEffect):
     """Rotates the hue of non-black pixels over time."""
@@ -19,14 +21,17 @@ class ColorShiftEffect(FrameEffect):
             self._speed = params["speed"]
 
     def apply(self, frame: Image.Image, t: float) -> Image.Image:
+        # Zero-copy view to check for non-black pixels
+        rgb_view = np.asarray(frame)
+        mask = rgb_view.max(axis=2) > 0
+        if not mask.any():
+            return frame
+
         hsv = frame.convert("HSV")
         arr = np.array(hsv)
-        rgb_arr = np.array(frame)
 
-        # Only shift non-black pixels (any channel > 0)
-        mask = rgb_arr.max(axis=2) > 0
         # Pillow HSV: H is 0-255 (mapped from 0-360)
-        offset = int((t * self._speed * 60) % 360 * 255 / 360) & 0xFF
+        offset = int((t * self._speed * _SPEED_FACTOR) % 256) & 0xFF
         arr[:, :, 0][mask] = (arr[:, :, 0][mask].astype(np.uint16) + offset).astype(np.uint8)
 
         return Image.fromarray(arr, "HSV").convert("RGB")

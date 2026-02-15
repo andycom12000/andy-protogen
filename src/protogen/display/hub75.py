@@ -24,12 +24,14 @@ class HUB75Display(DisplayBase):
             ),
         )
         self.brightness = 100
+        self._brightness_lut = np.arange(256, dtype=np.uint8)
 
     def show_image(self, image: Image.Image) -> None:
-        img = image.convert("RGB").resize((self.width, self.height))
-        arr = np.asarray(img, dtype=np.uint8)
+        if image.mode != "RGB" or image.size != (self.width, self.height):
+            image = image.convert("RGB").resize((self.width, self.height))
+        arr = np.asarray(image, dtype=np.uint8)
         if self.brightness < 100:
-            arr = (arr * self.brightness / 100).astype(np.uint8)
+            arr = self._brightness_lut[arr]
         self._framebuffer[:] = arr
         self._matrix.show()
 
@@ -39,3 +41,7 @@ class HUB75Display(DisplayBase):
 
     def set_brightness(self, value: int) -> None:
         self.brightness = max(0, min(100, value))
+        self._brightness_lut = np.array(
+            [min(255, i * self.brightness // 100) for i in range(256)],
+            dtype=np.uint8,
+        )

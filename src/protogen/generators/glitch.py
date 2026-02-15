@@ -28,7 +28,8 @@ class GlitchEffect(FrameEffect):
             if self._rng.random() < self._intensity * 0.3:
                 self._burst_end = t + self._rng.uniform(0.05, 0.25)
             else:
-                return frame.copy()
+                # No burst — return frame directly (upstream doesn't modify it)
+                return frame
 
         arr = np.array(frame)
         rng = self._rng
@@ -50,8 +51,8 @@ class GlitchEffect(FrameEffect):
         if rng.random() < 0.3:
             num_blocks = rng.randint(1, 3)
             for _ in range(num_blocks):
-                bx = rng.randint(0, self.width - 1)
-                by = rng.randint(0, self.height - 1)
+                bx = rng.randint(0, self.width - 4)
+                by = rng.randint(0, self.height - 2)
                 bw = rng.randint(3, min(20, self.width - bx))
                 bh = rng.randint(1, min(4, self.height - by))
                 color = [rng.randint(0, 255) for _ in range(3)]

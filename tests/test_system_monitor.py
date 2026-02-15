@@ -70,6 +70,26 @@ def test_wifi_signal_none_on_windows():
     assert status["wifi_signal"] is None
 
 
+def test_ttl_cache_returns_cached_result():
+    """get_status returns cached result within TTL window."""
+    monitor = SystemMonitor(cache_ttl=10.0)
+    monitor._psutil = None
+    status1 = monitor.get_status()
+    status2 = monitor.get_status()
+    assert status1 is status2  # same object, not re-computed
+
+
+def test_ttl_cache_expires():
+    """get_status re-computes after TTL expires."""
+    monitor = SystemMonitor(cache_ttl=0.0)  # immediate expiry
+    monitor._psutil = None
+    status1 = monitor.get_status()
+    status2 = monitor.get_status()
+    # With TTL=0, each call creates a new dict
+    assert status1 is not status2
+    assert status1 == status2  # same values though
+
+
 def test_wifi_signal_parsed():
     """wifi_signal should be parsed from /proc/net/wireless content."""
     monitor = SystemMonitor()

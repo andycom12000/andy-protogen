@@ -26,6 +26,8 @@ class BreatheEffect(FrameEffect):
     def apply(self, frame: Image.Image, t: float) -> Image.Image:
         # factor oscillates between (1 - amplitude) and 1.0
         factor = 1.0 - self._amplitude * (1.0 - math.sin(2 * math.pi * t / self._period)) / 2.0
-        arr = np.array(frame, dtype=np.float32)
-        arr *= factor
-        return Image.fromarray(arr.clip(0, 255).astype(np.uint8), "RGB")
+        # Fixed-point: scale factor to 0-256 range for uint16 multiply + shift
+        factor_int = int(factor * 256)
+        arr = np.asarray(frame, dtype=np.uint8)
+        result = (arr.astype(np.uint16) * factor_int >> 8).astype(np.uint8)
+        return Image.fromarray(result, "RGB")
