@@ -45,6 +45,10 @@ class RenderPipeline(DisplayBase):
             self._effect.set_text(self._pending_text)
             self._pending_text = None
 
+    def update_effect_params(self, params: dict) -> None:
+        if self._effect is not None:
+            self._effect.update_params(params)
+
     def clear_effect(self) -> None:
         self._effect = None
         self._effect_name = None

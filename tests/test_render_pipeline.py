@@ -130,3 +130,29 @@ def test_pending_text_cleared_after_apply():
     # Create a second effect — should NOT carry over old text
     pipeline.set_effect("scrolling_text", {})
     assert pipeline._effect._text == "PROTOGEN"  # default
+
+
+def test_update_effect_params():
+    """update_effect_params updates the active effect's params without recreating it."""
+    display = MockDisplay(width=128, height=32)
+    pipeline = RenderPipeline(display)
+
+    pipeline.set_effect("matrix_rain", {"color": [0, 255, 70], "speed": 1.0, "density": 0.3})
+    original_effect = pipeline._effect
+
+    pipeline.update_effect_params({"speed": 2.0})
+
+    # Same instance, not recreated
+    assert pipeline._effect is original_effect
+    assert pipeline._effect.params["speed"] == 2.0
+    # Unchanged params preserved
+    assert pipeline._effect.params["density"] == 0.3
+
+
+def test_update_effect_params_no_effect():
+    """update_effect_params is a no-op when no effect is active."""
+    display = MockDisplay(width=128, height=32)
+    pipeline = RenderPipeline(display)
+
+    # Should not raise
+    pipeline.update_effect_params({"speed": 2.0})

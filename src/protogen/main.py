@@ -116,6 +116,8 @@ async def async_main() -> None:
                 effect = effects.get(cmd.value)
                 if effect is not None:
                     pipeline.set_effect(effect.generator_name, effect.generator_params, effect.fps)
+            elif cmd.event == InputEvent.SET_EFFECT_PARAMS:
+                pipeline.update_effect_params(cmd.value)
             elif cmd.event == InputEvent.CLEAR_EFFECT:
                 pipeline.clear_effect()
 

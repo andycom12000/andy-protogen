@@ -13,6 +13,13 @@ class ProceduralGenerator(ABC):
         self.height = height
         self.params = params
 
+    def update_params(self, params: dict) -> None:
+        """Update generator parameters in-place.
+
+        Subclasses can override to handle side effects.
+        """
+        self.params.update(params)
+
     @abstractmethod
     def render(self, t: float) -> Image.Image:
         """Render a frame at time t (seconds since start).

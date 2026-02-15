@@ -10,6 +10,7 @@ class InputEvent(Enum):
     SET_TEXT = "set_text"
     SET_EFFECT = "set_effect"
     CLEAR_EFFECT = "clear_effect"
+    SET_EFFECT_PARAMS = "set_effect_params"
 
 
 @dataclass(frozen=True)
