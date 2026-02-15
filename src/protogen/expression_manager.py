@@ -36,6 +36,7 @@ class ExpressionManager:
         self._blink_interval_max = blink_interval_max
         self._transition_duration_ms = transition_duration_ms
         self._current_generator: ProceduralGenerator | None = None
+        self._pending_text: str | None = None
 
     @property
     def expression_names(self) -> list[str]:
@@ -67,7 +68,7 @@ class ExpressionManager:
             if gen_cls is None:
                 return
             new_frame = gen_cls(
-                self._display.width, self._display.height, expr.generator_params
+                self._display.width, self._display.height, self._effective_params(expr)
             ).render(0.0)
         else:
             return
@@ -117,7 +118,7 @@ class ExpressionManager:
             if gen_cls is None:
                 return
             generator = gen_cls(
-                self._display.width, self._display.height, expr.generator_params
+                self._display.width, self._display.height, self._effective_params(expr)
             )
             self._current_generator = generator
             self._animation_task = asyncio.create_task(
@@ -197,9 +198,17 @@ class ExpressionManager:
         return buf.getvalue()
 
     def set_text(self, text: str) -> None:
-        """Update scrolling text if current expression uses ScrollingTextGenerator."""
+        """Update scrolling text. Stores text for next generator creation."""
+        self._pending_text = text
         if self._current_generator is not None and hasattr(self._current_generator, "set_text"):
             self._current_generator.set_text(text)
+
+    def _effective_params(self, expr: Expression) -> dict:
+        """Return generator params, injecting pending text for scrolling_text."""
+        params = expr.generator_params
+        if self._pending_text is not None and expr.generator_name == "scrolling_text":
+            params = {**params, "text": self._pending_text}
+        return params
 
     def _stop_animation(self) -> None:
         self._animation.stop()

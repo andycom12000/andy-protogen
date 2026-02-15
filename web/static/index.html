@@ -516,6 +516,7 @@
             const text = textInputEl.value.trim();
             if (text) {
                 send({ action: 'set_text', text });
+                setActiveExpression('scrolling_text');
             }
         });
 
