@@ -51,6 +51,12 @@
       "frames_dir": "animations/loading_bar",
       "fps": 6,
       "loop": true
+    },
+    "matrix_rain": {
+      "type": "procedural",
+      "generator": "matrix_rain",
+      "fps": 20,
+      "params": { "color": [0, 255, 70], "speed": 1.0, "density": 0.3 }
     }
   },
   "default": "default"

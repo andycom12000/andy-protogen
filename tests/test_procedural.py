@@ -81,3 +81,27 @@ def test_procedural_thumbnail(mock_display):
     data = mgr.get_thumbnail("test_proc")
     assert data is not None
     assert data[:4] == b'\x89PNG'
+
+
+# --- Matrix Rain ---
+
+from protogen.generators.matrix_rain import MatrixRainGenerator
+
+
+def test_matrix_rain_renders():
+    """Matrix rain generator produces non-black frames."""
+    gen = MatrixRainGenerator(128, 32, {"color": [0, 255, 70], "speed": 1.0, "density": 0.3})
+    frame = gen.render(1.0)
+    assert frame.size == (128, 32)
+    assert frame.mode == "RGB"
+    # After 1 second, some pixels should be non-black
+    pixels = list(frame.getdata())
+    non_black = [p for p in pixels if p != (0, 0, 0)]
+    assert len(non_black) > 0
+
+
+def test_matrix_rain_default_params():
+    """Matrix rain works with empty params (uses defaults)."""
+    gen = MatrixRainGenerator(128, 32, {})
+    frame = gen.render(0.5)
+    assert frame.size == (128, 32)
