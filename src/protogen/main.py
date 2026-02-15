@@ -41,6 +41,7 @@ async def async_main() -> None:
         pipeline, expressions,
         blink_interval_min=config.blink_interval_min,
         blink_interval_max=config.blink_interval_max,
+        transition_duration_ms=config.transition_duration_ms,
     )
     input_mgr = InputManager()
 

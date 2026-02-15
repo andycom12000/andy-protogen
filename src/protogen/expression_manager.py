@@ -4,6 +4,8 @@ import asyncio
 import logging
 import random
 
+from PIL import Image
+
 from protogen.animation import AnimationEngine
 from protogen.display.base import DisplayBase
 from protogen.expression import Expression, ExpressionType
@@ -18,6 +20,7 @@ class ExpressionManager:
         expressions: dict[str, Expression],
         blink_interval_min: float = 3.0,
         blink_interval_max: float = 6.0,
+        transition_duration_ms: int = 0,
     ) -> None:
         self._display = display
         self._expressions = expressions
@@ -29,6 +32,7 @@ class ExpressionManager:
         self._blink_task: asyncio.Task | None = None
         self._blink_interval_min = blink_interval_min
         self._blink_interval_max = blink_interval_max
+        self._transition_duration_ms = transition_duration_ms
 
     @property
     def expression_names(self) -> list[str]:
@@ -41,12 +45,56 @@ class ExpressionManager:
     def set_expression(self, name: str) -> None:
         if name not in self._expressions:
             return
-        # 停止正在播放的動畫
+
+        # Capture old frame for transition (if display tracks it)
+        old_frame = getattr(self._display, "last_frame", None)
+
         self._stop_animation()
 
         expr = self._expressions[name]
         self.current_name = name
 
+        # Determine the new expression's first frame
+        if expr.type == ExpressionType.STATIC and expr.image:
+            new_frame = expr.image
+        elif expr.type == ExpressionType.ANIMATION and expr.frames:
+            new_frame = expr.frames[0]
+        else:
+            return
+
+        # Cross-fade transition if we have an old frame and duration > 0
+        if old_frame is not None and self._transition_duration_ms > 0:
+            self._animation_task = asyncio.create_task(
+                self._play_transition(old_frame, new_frame, expr)
+            )
+        else:
+            self._show_expression(expr)
+
+    async def _play_transition(
+        self,
+        old_frame: Image.Image,
+        new_frame: Image.Image,
+        target_expr: Expression,
+    ) -> None:
+        """Cross-fade from old_frame to new_frame, then show target expression."""
+        fps = 30
+        duration_s = self._transition_duration_ms / 1000.0
+        total_frames = max(1, int(duration_s * fps))
+
+        old_rgba = old_frame.convert("RGBA")
+        new_rgba = new_frame.convert("RGBA")
+
+        for i in range(1, total_frames + 1):
+            progress = i / total_frames
+            blended = Image.blend(old_rgba, new_rgba, alpha=progress)
+            self._display.show_image(blended.convert("RGB"))
+            await asyncio.sleep(1.0 / fps)
+
+        # After transition completes, show the target expression normally
+        self._show_expression(target_expr)
+
+    def _show_expression(self, expr: Expression) -> None:
+        """Display an expression immediately (no transition)."""
         if expr.type == ExpressionType.STATIC and expr.image:
             self._display.show_image(expr.image)
         elif expr.type == ExpressionType.ANIMATION and expr.frames:
