@@ -10,6 +10,7 @@ from protogen.expression import load_expressions
 from protogen.expression_manager import ExpressionManager
 from protogen.input_manager import InputManager
 from protogen.boot_animation import play_boot_animation
+from protogen.generators import register_generators
 from protogen.render_pipeline import RenderPipeline
 
 
@@ -33,6 +34,7 @@ def create_display(config: Config):
 
 async def async_main() -> None:
     config = Config.load()
+    register_generators()
     display = create_display(config)
     display.set_brightness(config.display.brightness)
 
