@@ -89,6 +89,12 @@ def _create_app(
         await put(Command(event=InputEvent.SET_EFFECT, value=name))
         return {"status": "ok"}
 
+    @app.post("/api/effect/{name}/params")
+    async def update_effect_params(name: str, data: dict):
+        await put(Command(event=InputEvent.SET_EFFECT, value=name))
+        await put(Command(event=InputEvent.SET_EFFECT_PARAMS, value=data))
+        return {"status": "ok"}
+
     @app.post("/api/text")
     async def post_text(data: dict):
         text = data.get("text", "")
@@ -138,6 +144,9 @@ def _create_app(
                     text = data.get("text", "")
                     await put(Command(event=InputEvent.SET_TEXT, value=text))
                     await put(Command(event=InputEvent.SET_EFFECT, value="scrolling_text"))
+                elif action == "update_effect_params":
+                    await put(Command(event=InputEvent.SET_EFFECT, value=data["name"]))
+                    await put(Command(event=InputEvent.SET_EFFECT_PARAMS, value=data.get("params", {})))
         except Exception:
             pass
 

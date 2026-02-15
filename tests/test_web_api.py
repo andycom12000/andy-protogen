@@ -181,3 +181,18 @@ def test_system_status_without_monitor():
     data = response.json()
     assert data["cpu_temp"] is None
     assert data["display_fps"] == 0.0
+
+
+def test_update_effect_params_endpoint(web_app):
+    app, commands, _ = web_app
+    client = TestClient(app)
+    response = client.post(
+        "/api/effect/matrix_rain/params",
+        json={"speed": 2.0, "density": 0.5},
+    )
+    assert response.status_code == 200
+    assert len(commands) == 2
+    assert commands[0].event == InputEvent.SET_EFFECT
+    assert commands[0].value == "matrix_rain"
+    assert commands[1].event == InputEvent.SET_EFFECT_PARAMS
+    assert commands[1].value == {"speed": 2.0, "density": 0.5}

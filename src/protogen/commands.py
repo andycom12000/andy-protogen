@@ -16,4 +16,4 @@ class InputEvent(Enum):
 @dataclass(frozen=True)
 class Command:
     event: InputEvent
-    value: str | int | None = None
+    value: str | int | dict | None = None
