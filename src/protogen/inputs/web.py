@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from pathlib import Path
 from typing import Callable, Awaitable
 
@@ -8,6 +9,8 @@ from fastapi.responses import FileResponse, Response
 
 from protogen.commands import Command, InputEvent
 from protogen.system_monitor import SystemMonitor
+
+logger = logging.getLogger(__name__)
 
 
 def _create_app(
@@ -149,8 +152,8 @@ def _create_app(
                 elif action == "update_effect_params":
                     await put(Command(event=InputEvent.SET_EFFECT, value=data["name"]))
                     await put(Command(event=InputEvent.SET_EFFECT_PARAMS, value=data.get("params", {})))
-        except Exception:
-            pass
+        except Exception as exc:
+            logger.debug("WebSocket closed: %s", exc)
 
     return app
 
