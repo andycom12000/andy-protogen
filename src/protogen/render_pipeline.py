@@ -27,6 +27,7 @@ class RenderPipeline(DisplayBase):
         self._effect_fps: int = 20
         self._effect_frame: Image.Image | None = None
         self._frame_times: deque[float] = deque(maxlen=30)
+        self._pending_text: str | None = None
 
     @property
     def active_effect_name(self) -> str | None:
@@ -40,6 +41,9 @@ class RenderPipeline(DisplayBase):
         self._effect_name = name
         self._effect_fps = fps
         self._effect_frame = None
+        if self._pending_text is not None and hasattr(self._effect, "set_text"):
+            self._effect.set_text(self._pending_text)
+            self._pending_text = None
 
     def clear_effect(self) -> None:
         self._effect = None
@@ -50,6 +54,7 @@ class RenderPipeline(DisplayBase):
             self._display.show_image(self.last_frame)
 
     def set_effect_text(self, text: str) -> None:
+        self._pending_text = text
         if self._effect is not None and hasattr(self._effect, "set_text"):
             self._effect.set_text(text)
 

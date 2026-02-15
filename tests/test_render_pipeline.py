@@ -1,7 +1,10 @@
 from PIL import Image
 
 from protogen.display.mock import MockDisplay
+from protogen.generators import register_generators
 from protogen.render_pipeline import RenderPipeline
+
+register_generators()
 
 
 def test_passthrough_show_image():
@@ -100,3 +103,30 @@ def test_get_fps_single_frame_zero():
 
     pipeline.show_image(Image.new("RGB", (128, 32), (0, 0, 0)))
     assert pipeline.get_fps() == 0.0
+
+
+def test_pending_text_applied_on_set_effect():
+    """Text set before effect is created gets applied to the new effect."""
+    display = MockDisplay(width=128, height=32)
+    pipeline = RenderPipeline(display)
+
+    # Simulate the command order: SET_TEXT then SET_EFFECT
+    pipeline.set_effect_text("HELLO WORLD")
+    pipeline.set_effect("scrolling_text", {})
+
+    assert pipeline._effect is not None
+    assert pipeline._effect._text == "HELLO WORLD"
+    assert pipeline._pending_text is None
+
+
+def test_pending_text_cleared_after_apply():
+    """Pending text is consumed after being applied to the effect."""
+    display = MockDisplay(width=128, height=32)
+    pipeline = RenderPipeline(display)
+
+    pipeline.set_effect_text("TEST")
+    pipeline.set_effect("scrolling_text", {})
+
+    # Create a second effect — should NOT carry over old text
+    pipeline.set_effect("scrolling_text", {})
+    assert pipeline._effect._text == "PROTOGEN"  # default
