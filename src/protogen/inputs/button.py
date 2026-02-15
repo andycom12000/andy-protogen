@@ -32,6 +32,6 @@ class ButtonInput:
         while True:
             if request.wait_edge_events(timeout=0.1):
                 request.read_edge_events()
-                await put(Command(event=InputEvent.NEXT_EXPRESSION))
+                await put(Command(event=InputEvent.TOGGLE_BLINK))
                 await asyncio.sleep(self._debounce)
             await asyncio.sleep(0.01)

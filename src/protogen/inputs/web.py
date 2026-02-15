@@ -33,16 +33,6 @@ def _create_app(
         await put(Command(event=InputEvent.SET_EXPRESSION, value=name))
         return {"status": "ok"}
 
-    @app.post("/api/next")
-    async def next_expression():
-        await put(Command(event=InputEvent.NEXT_EXPRESSION))
-        return {"status": "ok"}
-
-    @app.post("/api/prev")
-    async def prev_expression():
-        await put(Command(event=InputEvent.PREV_EXPRESSION))
-        return {"status": "ok"}
-
     @app.post("/api/brightness/{value}")
     async def set_brightness(value: int):
         await put(Command(event=InputEvent.SET_BRIGHTNESS, value=value))
@@ -74,10 +64,6 @@ def _create_app(
                 action = data.get("action")
                 if action == "set":
                     await put(Command(event=InputEvent.SET_EXPRESSION, value=data["name"]))
-                elif action == "next":
-                    await put(Command(event=InputEvent.NEXT_EXPRESSION))
-                elif action == "prev":
-                    await put(Command(event=InputEvent.PREV_EXPRESSION))
                 elif action == "brightness":
                     await put(Command(event=InputEvent.SET_BRIGHTNESS, value=data["value"]))
                 elif action == "toggle_blink":

@@ -60,7 +60,6 @@ Input Sources → InputManager (asyncio.Queue) → handle_commands() → Express
 
 - `GET /api/expressions` — 列出所有表情
 - `POST /api/expression/{name}` — 設定表情
-- `POST /api/next`, `/api/prev` — 切換表情
 - `POST /api/brightness/{value}` — 設定亮度
 - `WebSocket /ws` — 即時雙向控制
 

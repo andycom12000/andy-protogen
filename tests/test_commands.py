@@ -8,5 +8,5 @@ def test_command_creation():
 
 
 def test_command_without_value():
-    cmd = Command(event=InputEvent.NEXT_EXPRESSION)
+    cmd = Command(event=InputEvent.TOGGLE_BLINK)
     assert cmd.value is None

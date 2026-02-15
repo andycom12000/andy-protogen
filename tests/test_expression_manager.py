@@ -26,20 +26,6 @@ def test_set_expression(mock_display, sample_expressions):
     assert mock_display.last_image is not None
 
 
-def test_next_expression(mock_display, sample_expressions):
-    mgr = ExpressionManager(mock_display, sample_expressions)
-    mgr.set_expression("happy")
-    mgr.next_expression()
-    assert mgr.current_name == "sad"
-
-
-def test_prev_expression(mock_display, sample_expressions):
-    mgr = ExpressionManager(mock_display, sample_expressions)
-    mgr.set_expression("sad")
-    mgr.prev_expression()
-    assert mgr.current_name == "happy"
-
-
 def test_expression_list(mock_display, sample_expressions):
     mgr = ExpressionManager(mock_display, sample_expressions)
     assert mgr.expression_names == ["happy", "sad"]

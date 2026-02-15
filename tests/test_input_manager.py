@@ -9,7 +9,7 @@ from protogen.commands import Command, InputEvent
 @pytest.mark.asyncio
 async def test_put_and_get():
     mgr = InputManager()
-    cmd = Command(event=InputEvent.NEXT_EXPRESSION)
+    cmd = Command(event=InputEvent.TOGGLE_BLINK)
     await mgr.put(cmd)
     result = await mgr.get()
     assert result == cmd

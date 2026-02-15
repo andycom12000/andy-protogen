@@ -62,10 +62,6 @@ async def async_main() -> None:
             cmd = await input_mgr.get()
             if cmd.event == InputEvent.SET_EXPRESSION:
                 expr_mgr.set_expression(cmd.value)
-            elif cmd.event == InputEvent.NEXT_EXPRESSION:
-                expr_mgr.next_expression()
-            elif cmd.event == InputEvent.PREV_EXPRESSION:
-                expr_mgr.prev_expression()
             elif cmd.event == InputEvent.SET_BRIGHTNESS:
                 display.set_brightness(cmd.value)
             elif cmd.event == InputEvent.TOGGLE_BLINK:

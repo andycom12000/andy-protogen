@@ -16,7 +16,6 @@ class ExpressionManager:
         self._display = display
         self._expressions = expressions
         self._names = sorted(expressions.keys())
-        self._current_index = 0
         self.current_name: str | None = None
         self._animation = AnimationEngine(display)
         self._animation_task: asyncio.Task | None = None
@@ -39,7 +38,6 @@ class ExpressionManager:
 
         expr = self._expressions[name]
         self.current_name = name
-        self._current_index = self._names.index(name)
 
         if expr.type == ExpressionType.STATIC and expr.image:
             self._display.show_image(expr.image)
@@ -47,14 +45,6 @@ class ExpressionManager:
             self._animation_task = asyncio.create_task(
                 self._animation.play(expr.frames, fps=expr.fps, loop=expr.loop)
             )
-
-    def next_expression(self) -> None:
-        self._current_index = (self._current_index + 1) % len(self._names)
-        self.set_expression(self._names[self._current_index])
-
-    def prev_expression(self) -> None:
-        self._current_index = (self._current_index - 1) % len(self._names)
-        self.set_expression(self._names[self._current_index])
 
     def toggle_blink(self) -> bool:
         self._blink_enabled = not self._blink_enabled
