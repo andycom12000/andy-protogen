@@ -69,7 +69,7 @@ def render_boot_frame(width: int, height: int, t: float) -> Image.Image:
 async def play_boot_animation(
     display: DisplayBase,
     duration: float = 2.0,
-    fps: int = 30,
+    fps: int = 15,
 ) -> None:
     """Play the boot animation sequence on the display."""
     total_frames = max(1, int(duration * fps))

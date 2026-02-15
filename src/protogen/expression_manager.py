@@ -79,7 +79,7 @@ class ExpressionManager:
         target_expr: Expression,
     ) -> None:
         """Cross-fade from old_frame to new_frame, then show target expression."""
-        fps = 30
+        fps = 20
         duration_s = self._transition_duration_ms / 1000.0
         total_frames = max(1, int(duration_s * fps))
 

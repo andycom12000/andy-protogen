@@ -31,6 +31,11 @@ class RenderPipeline(DisplayBase):
         self._pending_text: str | None = None
         self._black_frame = Image.new("RGB", (self.width, self.height), (0, 0, 0))
         self._last_base_id: int | None = None
+        # Frame dedup: skip pushing identical frames to hardware
+        self._last_pushed_id: int | None = None
+        self._last_composited_bytes: bytes | None = None
+        # Effect loop sleep: wait instead of polling when no effect active
+        self._effect_active = asyncio.Event()
 
     @property
     def active_effect_name(self) -> str | None:
@@ -45,6 +50,8 @@ class RenderPipeline(DisplayBase):
         self._effect_fps = fps
         self._effect_frame = None
         self._last_base_id = None
+        self._last_composited_bytes = None
+        self._effect_active.set()
         if self._pending_text is not None and hasattr(self._effect, "set_text"):
             self._effect.set_text(self._pending_text)
             self._pending_text = None
@@ -58,8 +65,11 @@ class RenderPipeline(DisplayBase):
         self._effect_name = None
         self._effect_frame = None
         self._last_base_id = None
-        # Re-display pure expression frame
+        self._last_composited_bytes = None
+        self._effect_active.clear()
+        # Re-display pure expression frame (bypass dedup since effect was cleared)
         if self.last_frame is not None:
+            self._last_pushed_id = id(self.last_frame)
             self._display.show_image(self.last_frame)
 
     def set_effect_text(self, text: str) -> None:
@@ -70,6 +80,8 @@ class RenderPipeline(DisplayBase):
     async def run_effect_loop(self) -> None:
         start = time.monotonic()
         while True:
+            # Sleep until an effect is active instead of polling
+            await self._effect_active.wait()
             if self._effect is not None:
                 t = time.monotonic() - start
                 if isinstance(self._effect, FrameEffect) and self.last_frame is not None:
@@ -95,6 +107,11 @@ class RenderPipeline(DisplayBase):
         base_arr = np.asarray(base)
         effect_arr = np.asarray(self._effect_frame)
         composited_arr = np.maximum(base_arr, effect_arr)
+        # Skip pushing if composited result is identical to last push
+        composited_bytes = composited_arr.tobytes()
+        if composited_bytes == self._last_composited_bytes:
+            return
+        self._last_composited_bytes = composited_bytes
         self._display.show_image(Image.fromarray(composited_arr, "RGB"))
 
     def get_fps(self) -> float:
@@ -111,10 +128,17 @@ class RenderPipeline(DisplayBase):
         if self._effect is not None and self._effect_frame is not None:
             self._push_composited()
         else:
+            # Skip if this exact image object was already pushed
+            frame_id = id(image)
+            if frame_id == self._last_pushed_id:
+                return
+            self._last_pushed_id = frame_id
             self._display.show_image(image)
 
     def clear(self) -> None:
         self.last_frame = None
+        self._last_pushed_id = None
+        self._last_composited_bytes = None
         self._display.clear()
 
     def set_brightness(self, value: int) -> None:

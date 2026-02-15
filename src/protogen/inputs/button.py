@@ -29,9 +29,13 @@ class ButtonInput:
             }
         )
 
+        loop = asyncio.get_running_loop()
         while True:
-            if request.wait_edge_events(timeout=0.1):
+            # Block in executor with long timeout — OS-level GPIO interrupt wait
+            has_event = await loop.run_in_executor(
+                None, request.wait_edge_events, 5.0
+            )
+            if has_event:
                 request.read_edge_events()
                 await put(Command(event=InputEvent.TOGGLE_BLINK))
                 await asyncio.sleep(self._debounce)
-            await asyncio.sleep(0.01)
