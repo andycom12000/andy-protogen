@@ -17,6 +17,11 @@ class RainbowSweepEffect(FrameEffect):
             np.linspace(0, 1, width, endpoint=False, dtype=np.float32), (height, 1)
         )
 
+    def update_params(self, params: dict) -> None:
+        super().update_params(params)
+        if "speed" in params:
+            self._speed = params["speed"]
+
     def apply(self, frame: Image.Image, t: float) -> Image.Image:
         rgb_arr = np.array(frame)
 

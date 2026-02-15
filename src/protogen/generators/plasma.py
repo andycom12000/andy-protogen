@@ -18,6 +18,11 @@ class PlasmaGenerator(ProceduralGenerator):
         self._x = x_coords.astype(np.float32) / width
         self._y = y_coords.astype(np.float32) / height
 
+    def update_params(self, params: dict) -> None:
+        super().update_params(params)
+        if "speed" in params:
+            self._speed = params["speed"]
+
     def render(self, t: float) -> Image.Image:
         st = t * self._speed
 

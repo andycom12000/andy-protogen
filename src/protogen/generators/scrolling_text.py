@@ -29,6 +29,14 @@ class ScrollingTextGenerator(ProceduralGenerator):
         draw.text((self.width, y), self._text, fill=self._color, font=self._font)
         self._total_width = total_w
 
+    def update_params(self, params: dict) -> None:
+        super().update_params(params)
+        if "speed" in params:
+            self._speed = params["speed"]
+        if "color" in params:
+            self._color = tuple(params["color"])
+            self._render_text_image()
+
     def set_text(self, text: str) -> None:
         """Update the scrolling text dynamically."""
         self._text = text

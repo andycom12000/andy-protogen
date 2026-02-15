@@ -17,6 +17,11 @@ class GlitchEffect(FrameEffect):
         self._burst_end = 0.0
         self._rng = random.Random()
 
+    def update_params(self, params: dict) -> None:
+        super().update_params(params)
+        if "intensity" in params:
+            self._intensity = params["intensity"]
+
     def apply(self, frame: Image.Image, t: float) -> Image.Image:
         # Decide whether to trigger a new burst
         if t >= self._burst_end:

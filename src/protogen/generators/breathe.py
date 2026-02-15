@@ -16,6 +16,13 @@ class BreatheEffect(FrameEffect):
         self._period = params.get("period", 3.0)
         self._amplitude = params.get("amplitude", 0.5)
 
+    def update_params(self, params: dict) -> None:
+        super().update_params(params)
+        if "period" in params:
+            self._period = params["period"]
+        if "amplitude" in params:
+            self._amplitude = params["amplitude"]
+
     def apply(self, frame: Image.Image, t: float) -> Image.Image:
         # factor oscillates between (1 - amplitude) and 1.0
         factor = 1.0 - self._amplitude * (1.0 - math.sin(2 * math.pi * t / self._period)) / 2.0

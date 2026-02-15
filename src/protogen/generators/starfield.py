@@ -22,6 +22,13 @@ class StarfieldGenerator(ProceduralGenerator):
         ]
         self._last_t = 0.0
 
+    def update_params(self, params: dict) -> None:
+        super().update_params(params)
+        if "speed" in params:
+            self._speed = params["speed"]
+        if "color" in params:
+            self._color = tuple(params["color"])
+
     def render(self, t: float) -> Image.Image:
         img = Image.new("RGB", (self.width, self.height), (0, 0, 0))
         draw = ImageDraw.Draw(img)

@@ -149,6 +149,54 @@ def test_update_effect_params():
     assert pipeline._effect.params["density"] == 0.3
 
 
+def test_update_effect_params_updates_cached_values():
+    """update_effect_params updates cached instance variables, not just self.params."""
+    display = MockDisplay(width=128, height=32)
+    pipeline = RenderPipeline(display)
+
+    # Breathe caches _period and _amplitude
+    pipeline.set_effect("breathe", {"period": 3.0, "amplitude": 0.5})
+    pipeline.update_effect_params({"period": 6.0})
+    assert pipeline._effect._period == 6.0
+    assert pipeline._effect._amplitude == 0.5  # unchanged
+
+    # Matrix rain caches _speed and _density
+    pipeline.set_effect("matrix_rain", {"speed": 1.0, "density": 0.3})
+    pipeline.update_effect_params({"speed": 2.5, "density": 0.6})
+    assert pipeline._effect._speed == 2.5
+    assert pipeline._effect._density == 0.6
+
+    # Starfield caches _speed
+    pipeline.set_effect("starfield", {"speed": 1.0})
+    pipeline.update_effect_params({"speed": 3.0})
+    assert pipeline._effect._speed == 3.0
+
+    # Scrolling text caches _speed
+    pipeline.set_effect("scrolling_text", {"speed": 50.0})
+    pipeline.update_effect_params({"speed": 80.0})
+    assert pipeline._effect._speed == 80.0
+
+    # Plasma caches _speed
+    pipeline.set_effect("plasma", {"speed": 1.0})
+    pipeline.update_effect_params({"speed": 2.0})
+    assert pipeline._effect._speed == 2.0
+
+    # Color shift caches _speed
+    pipeline.set_effect("color_shift", {"speed": 1.0})
+    pipeline.update_effect_params({"speed": 2.0})
+    assert pipeline._effect._speed == 2.0
+
+    # Rainbow sweep caches _speed
+    pipeline.set_effect("rainbow_sweep", {"speed": 1.0})
+    pipeline.update_effect_params({"speed": 2.0})
+    assert pipeline._effect._speed == 2.0
+
+    # Glitch caches _intensity
+    pipeline.set_effect("glitch", {"intensity": 0.3})
+    pipeline.update_effect_params({"intensity": 0.8})
+    assert pipeline._effect._intensity == 0.8
+
+
 def test_update_effect_params_no_effect():
     """update_effect_params is a no-op when no effect is active."""
     display = MockDisplay(width=128, height=32)
