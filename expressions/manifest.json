@@ -73,6 +73,26 @@
       "generator": "scrolling_text",
       "fps": 30,
       "params": { "text": "PROTOGEN", "speed": 50.0, "color": [0, 255, 255] }
+    },
+    "rainbow_sweep": {
+      "generator": "rainbow_sweep",
+      "fps": 25,
+      "params": { "speed": 1.0 }
+    },
+    "breathe": {
+      "generator": "breathe",
+      "fps": 20,
+      "params": { "period": 3.0, "amplitude": 0.5 }
+    },
+    "glitch": {
+      "generator": "glitch",
+      "fps": 30,
+      "params": { "intensity": 0.3 }
+    },
+    "color_shift": {
+      "generator": "color_shift",
+      "fps": 20,
+      "params": { "speed": 1.0 }
     }
   },
   "default": "default"

@@ -6,7 +6,7 @@ import time
 from PIL import Image, ImageChops
 
 from protogen.display.base import DisplayBase
-from protogen.generators import ProceduralGenerator, GENERATORS
+from protogen.generators import ProceduralGenerator, FrameEffect, GENERATORS
 
 
 class RenderPipeline(DisplayBase):
@@ -56,12 +56,17 @@ class RenderPipeline(DisplayBase):
         while True:
             if self._effect is not None:
                 t = time.monotonic() - start
+                if isinstance(self._effect, FrameEffect) and self.last_frame is not None:
+                    self._effect._base_frame = self.last_frame
                 self._effect_frame = self._effect.render(t)
                 self._push_composited()
             await asyncio.sleep(1.0 / self._effect_fps)
 
     def _push_composited(self) -> None:
         if self._effect_frame is None:
+            return
+        if isinstance(self._effect, FrameEffect):
+            self._display.show_image(self._effect_frame)
             return
         base = self.last_frame
         if base is None:

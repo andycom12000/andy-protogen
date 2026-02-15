@@ -5,13 +5,15 @@ import io
 import signal
 from pathlib import Path
 
+from PIL import Image
+
 from protogen.commands import InputEvent
 from protogen.config import Config
 from protogen.expression import load_expressions, load_effects
 from protogen.expression_manager import ExpressionManager
 from protogen.input_manager import InputManager
 from protogen.boot_animation import play_boot_animation
-from protogen.generators import register_generators, GENERATORS
+from protogen.generators import register_generators, GENERATORS, FrameEffect
 from protogen.render_pipeline import RenderPipeline
 
 
@@ -58,7 +60,12 @@ async def async_main() -> None:
         if gen_cls is None:
             return None
         gen = gen_cls(display.width, display.height, effect.generator_params)
-        img = gen.render(0.0)
+        if isinstance(gen, FrameEffect):
+            # Use a cyan sample frame so the transform is visible
+            sample = Image.new("RGB", (display.width, display.height), (0, 200, 200))
+            img = gen.apply(sample, 0.5)
+        else:
+            img = gen.render(0.0)
         buf = io.BytesIO()
         img.save(buf, format="PNG")
         return buf.getvalue()
