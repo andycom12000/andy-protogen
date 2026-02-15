@@ -69,3 +69,34 @@ def test_no_effect_passthrough():
     # The display should have received the same pixel values
     pixel = display.last_image.getpixel((0, 0))
     assert pixel == (100, 100, 100)
+
+
+def test_get_fps_initial_zero():
+    """get_fps returns 0.0 when no frames have been shown."""
+    display = MockDisplay(width=128, height=32)
+    pipeline = RenderPipeline(display)
+    assert pipeline.get_fps() == 0.0
+
+
+def test_get_fps_after_frames():
+    """get_fps returns a positive value after multiple show_image calls."""
+    import time
+    display = MockDisplay(width=128, height=32)
+    pipeline = RenderPipeline(display)
+
+    img = Image.new("RGB", (128, 32), (0, 0, 0))
+    for _ in range(5):
+        pipeline.show_image(img)
+        time.sleep(0.01)
+
+    fps = pipeline.get_fps()
+    assert fps > 0.0
+
+
+def test_get_fps_single_frame_zero():
+    """get_fps returns 0.0 with only one frame (no interval to measure)."""
+    display = MockDisplay(width=128, height=32)
+    pipeline = RenderPipeline(display)
+
+    pipeline.show_image(Image.new("RGB", (128, 32), (0, 0, 0)))
+    assert pipeline.get_fps() == 0.0

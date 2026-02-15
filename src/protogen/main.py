@@ -15,6 +15,7 @@ from protogen.input_manager import InputManager
 from protogen.boot_animation import play_boot_animation
 from protogen.generators import register_generators, GENERATORS, FrameEffect
 from protogen.render_pipeline import RenderPipeline
+from protogen.system_monitor import SystemMonitor
 
 
 def create_display(config: Config):
@@ -70,6 +71,8 @@ async def async_main() -> None:
         img.save(buf, format="PNG")
         return buf.getvalue()
 
+    system_monitor = SystemMonitor()
+
     # 註冊輸入來源
     if not config.display.mock:
         from protogen.inputs.button import ButtonInput
@@ -87,6 +90,8 @@ async def async_main() -> None:
             effect_names=sorted(effects.keys()),
             get_active_effect=lambda: pipeline.active_effect_name,
             get_effect_thumbnail=make_effect_thumbnail,
+            get_display_fps=lambda: pipeline.get_fps(),
+            system_monitor=system_monitor,
         ))
 
     # 播放開機動畫

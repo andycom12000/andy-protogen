@@ -6,6 +6,7 @@ from fastapi.testclient import TestClient
 
 from protogen.commands import Command, InputEvent
 from protogen.inputs.web import _create_app
+from protogen.system_monitor import SystemMonitor
 
 
 def _make_png(color: tuple) -> bytes:
@@ -47,6 +48,8 @@ def web_app():
         effect_names=["matrix_rain", "starfield", "plasma", "scrolling_text"],
         get_active_effect=lambda: active_effect[0],
         get_effect_thumbnail=get_effect_thumbnail,
+        get_display_fps=lambda: 30.0,
+        system_monitor=SystemMonitor(),
     )
     return app, commands, active_effect
 
@@ -130,3 +133,51 @@ def test_effect_thumbnail_endpoint(web_app):
     # Unknown effect returns 404
     response = client.get("/api/effects/nonexistent/thumbnail")
     assert response.status_code == 404
+
+
+def test_system_status_endpoint(web_app):
+    app, _, active_effect = web_app
+    active_effect[0] = "plasma"
+    client = TestClient(app)
+    response = client.get("/api/system/status")
+    assert response.status_code == 200
+    data = response.json()
+    # Should contain system metrics keys
+    assert "cpu_temp" in data
+    assert "cpu_usage" in data
+    assert "memory_used" in data
+    assert "uptime" in data
+    assert "wifi_signal" in data
+    # Should contain display state keys
+    assert "display_fps" in data
+    assert data["display_fps"] == 30.0
+    assert "current_expression" in data
+    assert data["current_expression"] == "happy"
+    assert "current_effect" in data
+    assert data["current_effect"] == "plasma"
+    assert "brightness" in data
+    assert data["brightness"] == 80
+
+
+def test_system_status_without_monitor():
+    """System status endpoint works with monitor=None."""
+    commands = []
+
+    async def put(cmd: Command) -> None:
+        commands.append(cmd)
+
+    app = _create_app(
+        expression_names=["happy"],
+        put=put,
+        get_blink_state=lambda: False,
+        get_current_expression=lambda: "happy",
+        get_brightness=lambda: 100,
+        get_display_fps=lambda: 0.0,
+        system_monitor=None,
+    )
+    client = TestClient(app)
+    response = client.get("/api/system/status")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["cpu_temp"] is None
+    assert data["display_fps"] == 0.0

@@ -1,0 +1,19 @@
+[Unit]
+Description=Protogen LED Visor Controller
+After=network.target
+
+[Service]
+Type=simple
+User=pi
+WorkingDirectory=/home/pi/andy-protogen
+ExecStart=/home/pi/andy-protogen/.venv/bin/python -m protogen.main
+Restart=always
+RestartSec=5
+Environment=PYTHONUNBUFFERED=1
+
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=protogen
+
+[Install]
+WantedBy=multi-user.target

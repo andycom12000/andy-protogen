@@ -7,6 +7,7 @@ from fastapi import FastAPI, WebSocket
 from fastapi.responses import FileResponse, Response
 
 from protogen.commands import Command, InputEvent
+from protogen.system_monitor import SystemMonitor
 
 
 def _create_app(
@@ -19,12 +20,15 @@ def _create_app(
     effect_names: list[str] | None = None,
     get_active_effect: Callable[[], str | None] | None = None,
     get_effect_thumbnail: Callable[[str], bytes | None] | None = None,
+    get_display_fps: Callable[[], float] | None = None,
+    system_monitor: SystemMonitor | None = None,
 ):
 
     app = FastAPI()
     static_dir = Path(__file__).parent.parent.parent.parent / "web" / "static"
     _effect_names = effect_names or []
     _get_active_effect = get_active_effect or (lambda: None)
+    _get_display_fps = get_display_fps or (lambda: 0.0)
 
     @app.get("/")
     async def index():
@@ -92,6 +96,18 @@ def _create_app(
         await put(Command(event=InputEvent.SET_EFFECT, value="scrolling_text"))
         return {"status": "ok"}
 
+    @app.get("/api/system/status")
+    async def system_status():
+        metrics = system_monitor.get_status() if system_monitor else {
+            "cpu_temp": None, "cpu_usage": None,
+            "memory_used": None, "uptime": None, "wifi_signal": None,
+        }
+        metrics["display_fps"] = round(_get_display_fps(), 1)
+        metrics["current_expression"] = get_current_expression()
+        metrics["current_effect"] = _get_active_effect()
+        metrics["brightness"] = get_brightness()
+        return metrics
+
     @app.get("/api/state")
     async def get_state():
         return {
@@ -142,6 +158,8 @@ class WebInput:
         effect_names: list[str] | None = None,
         get_active_effect: Callable[[], str | None] | None = None,
         get_effect_thumbnail: Callable[[str], bytes | None] | None = None,
+        get_display_fps: Callable[[], float] | None = None,
+        system_monitor: SystemMonitor | None = None,
     ) -> None:
         self._port = port
         self._expression_names = expression_names or []
@@ -152,6 +170,8 @@ class WebInput:
         self._effect_names = effect_names or []
         self._get_active_effect = get_active_effect or (lambda: None)
         self._get_effect_thumbnail = get_effect_thumbnail
+        self._get_display_fps = get_display_fps or (lambda: 0.0)
+        self._system_monitor = system_monitor
 
     async def run(self, put: Callable[[Command], Awaitable[None]]) -> None:
         import uvicorn
@@ -163,6 +183,8 @@ class WebInput:
             effect_names=self._effect_names,
             get_active_effect=self._get_active_effect,
             get_effect_thumbnail=self._get_effect_thumbnail,
+            get_display_fps=self._get_display_fps,
+            system_monitor=self._system_monitor,
         )
         config = uvicorn.Config(app, host="0.0.0.0", port=self._port, log_level="info", ws="wsproto")
         server = uvicorn.Server(config)

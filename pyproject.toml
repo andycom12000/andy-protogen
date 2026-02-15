@@ -22,12 +22,15 @@ web = [
 mock = [
     "pygame-ce>=2.5",
 ]
+monitoring = [
+    "psutil>=5.9.0",
+]
 dev = [
     "pytest>=8.0",
     "pytest-asyncio>=0.23",
 ]
 all = [
-    "andy-protogen[rpi,web,dev]",
+    "andy-protogen[rpi,web,monitoring,dev]",
 ]
 
 [project.scripts]

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import time
+from collections import deque
 
 from PIL import Image, ImageChops
 
@@ -25,6 +26,7 @@ class RenderPipeline(DisplayBase):
         self._effect_name: str | None = None
         self._effect_fps: int = 20
         self._effect_frame: Image.Image | None = None
+        self._frame_times: deque[float] = deque(maxlen=30)
 
     @property
     def active_effect_name(self) -> str | None:
@@ -74,7 +76,16 @@ class RenderPipeline(DisplayBase):
         composited = ImageChops.lighter(base, self._effect_frame)
         self._display.show_image(composited)
 
+    def get_fps(self) -> float:
+        if len(self._frame_times) < 2:
+            return 0.0
+        elapsed = self._frame_times[-1] - self._frame_times[0]
+        if elapsed <= 0:
+            return 0.0
+        return (len(self._frame_times) - 1) / elapsed
+
     def show_image(self, image: Image.Image) -> None:
+        self._frame_times.append(time.monotonic())
         self.last_frame = image
         if self._effect is not None and self._effect_frame is not None:
             self._push_composited()

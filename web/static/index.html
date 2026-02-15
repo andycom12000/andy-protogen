@@ -400,6 +400,66 @@
             color: var(--success);
         }
 
+        /* System status panel */
+        .card-label-toggle {
+            font-family: 'Fira Code', monospace;
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--text-muted);
+            margin-bottom: 0;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            -webkit-user-select: none;
+            user-select: none;
+        }
+
+        .card-label-toggle .chevron {
+            transition: transform 0.2s ease;
+            font-size: 0.6rem;
+        }
+
+        .card-label-toggle.expanded .chevron {
+            transform: rotate(180deg);
+        }
+
+        .card-label-toggle.expanded {
+            margin-bottom: 14px;
+        }
+
+        .status-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+        }
+
+        .status-item {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            padding: 8px 10px;
+            background: var(--bg-primary);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+        }
+
+        .status-item-label {
+            font-family: 'Fira Code', monospace;
+            font-size: 0.6rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-muted);
+        }
+
+        .status-item-value {
+            font-family: 'Fira Code', monospace;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--accent);
+        }
+
         /* 小螢幕響應式 */
         @media (max-width: 374px) {
             .expressions, .effects-grid {
@@ -462,6 +522,39 @@
                 </div>
                 <input type="range" min="0" max="100" value="80" id="brightness"
                        aria-label="Brightness">
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-label-toggle" id="sysStatusToggle">
+                <span>System Status</span>
+                <span class="chevron">&#9660;</span>
+            </div>
+            <div class="status-grid" id="sysStatus" style="display:none">
+                <div class="status-item">
+                    <span class="status-item-label">CPU Temp</span>
+                    <span class="status-item-value" id="sysCpuTemp">N/A</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-item-label">CPU Usage</span>
+                    <span class="status-item-value" id="sysCpuUsage">N/A</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-item-label">Memory</span>
+                    <span class="status-item-value" id="sysMemory">N/A</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-item-label">Uptime</span>
+                    <span class="status-item-value" id="sysUptime">N/A</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-item-label">WiFi Signal</span>
+                    <span class="status-item-value" id="sysWifi">N/A</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-item-label">Display FPS</span>
+                    <span class="status-item-value" id="sysFps">N/A</span>
+                </div>
             </div>
         </div>
     </div>
@@ -688,6 +781,50 @@
             } catch (e) {
                 console.error('Failed to load state:', e);
             }
+        }
+
+        /* System status panel */
+        const sysToggle = document.getElementById('sysStatusToggle');
+        const sysGrid = document.getElementById('sysStatus');
+        let sysStatusOpen = false;
+        let sysStatusTimer = null;
+
+        sysToggle.addEventListener('click', () => {
+            sysStatusOpen = !sysStatusOpen;
+            sysGrid.style.display = sysStatusOpen ? '' : 'none';
+            sysToggle.classList.toggle('expanded', sysStatusOpen);
+            if (sysStatusOpen) {
+                fetchSystemStatus();
+                sysStatusTimer = setInterval(fetchSystemStatus, 2000);
+            } else if (sysStatusTimer) {
+                clearInterval(sysStatusTimer);
+                sysStatusTimer = null;
+            }
+        });
+
+        function formatUptime(seconds) {
+            if (seconds == null) return 'N/A';
+            const h = Math.floor(seconds / 3600);
+            const m = Math.floor((seconds % 3600) / 60);
+            return h + 'h ' + m + 'm';
+        }
+
+        function valOrNA(v, suffix) {
+            if (v == null) return 'N/A';
+            return v + (suffix || '');
+        }
+
+        async function fetchSystemStatus() {
+            try {
+                const res = await fetch('/api/system/status');
+                const d = await res.json();
+                document.getElementById('sysCpuTemp').textContent = valOrNA(d.cpu_temp, '\u00B0C');
+                document.getElementById('sysCpuUsage').textContent = valOrNA(d.cpu_usage, '%');
+                document.getElementById('sysMemory').textContent = valOrNA(d.memory_used, '%');
+                document.getElementById('sysUptime').textContent = formatUptime(d.uptime);
+                document.getElementById('sysWifi').textContent = valOrNA(d.wifi_signal, ' dBm');
+                document.getElementById('sysFps').textContent = valOrNA(d.display_fps, ' fps');
+            } catch (_) {}
         }
 
         updateSliderFill();
