@@ -327,6 +327,48 @@
             border-radius: 3px;
         }
 
+        /* Text input */
+        .text-input-row {
+            display: flex;
+            gap: 8px;
+        }
+
+        .text-input-row input[type="text"] {
+            flex: 1;
+            padding: 10px 12px;
+            font-family: 'Fira Sans', sans-serif;
+            font-size: 0.9rem;
+            background: var(--bg-primary);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text-primary);
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .text-input-row input[type="text"]:focus {
+            border-color: var(--accent);
+        }
+
+        .text-input-row button {
+            padding: 10px 16px;
+            font-family: 'Fira Sans', sans-serif;
+            font-size: 0.9rem;
+            font-weight: 500;
+            background: var(--accent-dim);
+            border: 1px solid var(--accent);
+            border-radius: 8px;
+            color: var(--accent);
+            cursor: pointer;
+            transition: all 0.2s;
+            white-space: nowrap;
+        }
+
+        .text-input-row button:hover {
+            background: var(--accent);
+            color: var(--bg-primary);
+        }
+
         /* Reduced motion */
         @media (prefers-reduced-motion: reduce) {
             *, *::before, *::after {
@@ -348,6 +390,14 @@
         <div class="card">
             <div class="card-label">Expressions</div>
             <div class="expressions" id="expressions"></div>
+        </div>
+
+        <div class="card">
+            <div class="card-label">Scrolling Text</div>
+            <div class="text-input-row">
+                <input type="text" id="textInput" placeholder="Enter text..." maxlength="100">
+                <button type="button" id="textSend">Send</button>
+            </div>
         </div>
 
         <div class="card">
@@ -380,6 +430,8 @@
         const brightnessEl = document.getElementById('brightness');
         const bvalEl = document.getElementById('bval');
         const blinkToggleEl = document.getElementById('blinkToggle');
+        const textInputEl = document.getElementById('textInput');
+        const textSendEl = document.getElementById('textSend');
         /* Friendly display name: "loading_bar" → "Loading Bar" */
         function displayName(id) {
             return id.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
@@ -426,11 +478,19 @@
             if (ws && ws.readyState === WebSocket.OPEN) {
                 ws.send(JSON.stringify(data));
             } else {
-                const path = data.action === 'set' ? 'expression/' + data.name
-                           : data.action === 'brightness' ? 'brightness/' + data.value
-                           : data.action === 'toggle_blink' ? 'blink/toggle'
-                           : data.action;
-                fetch('/api/' + path, { method: 'POST' });
+                if (data.action === 'set_text') {
+                    fetch('/api/text', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ text: data.text }),
+                    });
+                } else {
+                    const path = data.action === 'set' ? 'expression/' + data.name
+                               : data.action === 'brightness' ? 'brightness/' + data.value
+                               : data.action === 'toggle_blink' ? 'blink/toggle'
+                               : data.action;
+                    fetch('/api/' + path, { method: 'POST' });
+                }
             }
         }
 
@@ -450,6 +510,19 @@
 
         blinkToggleEl.addEventListener('change', () => {
             send({ action: 'toggle_blink' });
+        });
+
+        textSendEl.addEventListener('click', () => {
+            const text = textInputEl.value.trim();
+            if (text) {
+                send({ action: 'set_text', text });
+            }
+        });
+
+        textInputEl.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                textSendEl.click();
+            }
         });
 
         async function loadExpressions() {
