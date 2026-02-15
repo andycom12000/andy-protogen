@@ -9,6 +9,7 @@ from protogen.config import Config
 from protogen.expression import load_expressions
 from protogen.expression_manager import ExpressionManager
 from protogen.input_manager import InputManager
+from protogen.boot_animation import play_boot_animation
 from protogen.render_pipeline import RenderPipeline
 
 
@@ -59,6 +60,9 @@ async def async_main() -> None:
             get_current_expression=lambda: expr_mgr.current_name,
             get_brightness=lambda: display.brightness,
         ))
+
+    # 播放開機動畫
+    await play_boot_animation(display, duration=2.0)
 
     # 設定預設表情
     expr_mgr.set_expression(config.default_expression)
