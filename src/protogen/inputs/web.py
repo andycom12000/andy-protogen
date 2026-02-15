@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import Callable, Awaitable
 
 from fastapi import FastAPI, WebSocket
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, Response
 
 from protogen.commands import Command, InputEvent
 
@@ -15,6 +15,7 @@ def _create_app(
     get_blink_state: Callable[[], bool],
     get_current_expression: Callable[[], str | None],
     get_brightness: Callable[[], int],
+    get_thumbnail: Callable[[str], bytes | None] | None = None,
 ):
 
     app = FastAPI()
@@ -27,6 +28,15 @@ def _create_app(
     @app.get("/api/expressions")
     async def list_expressions():
         return {"expressions": expression_names}
+
+    @app.get("/api/expressions/{name}/thumbnail")
+    async def expression_thumbnail(name: str):
+        if get_thumbnail is None:
+            return Response(status_code=404)
+        data = get_thumbnail(name)
+        if data is None:
+            return Response(status_code=404)
+        return Response(content=data, media_type="image/png")
 
     @app.post("/api/expression/{name}")
     async def set_expression(name: str):
@@ -84,12 +94,14 @@ class WebInput:
         get_blink_state: Callable[[], bool] | None = None,
         get_current_expression: Callable[[], str | None] | None = None,
         get_brightness: Callable[[], int] | None = None,
+        get_thumbnail: Callable[[str], bytes | None] | None = None,
     ) -> None:
         self._port = port
         self._expression_names = expression_names or []
         self._get_blink_state = get_blink_state or (lambda: False)
         self._get_current_expression = get_current_expression or (lambda: None)
         self._get_brightness = get_brightness or (lambda: 100)
+        self._get_thumbnail = get_thumbnail
 
     async def run(self, put: Callable[[Command], Awaitable[None]]) -> None:
         import uvicorn
@@ -97,6 +109,7 @@ class WebInput:
         app = _create_app(
             self._expression_names, put, self._get_blink_state,
             self._get_current_expression, self._get_brightness,
+            get_thumbnail=self._get_thumbnail,
         )
         config = uvicorn.Config(app, host="0.0.0.0", port=self._port, log_level="info", ws="wsproto")
         server = uvicorn.Server(config)

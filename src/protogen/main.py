@@ -59,6 +59,7 @@ async def async_main() -> None:
             get_blink_state=lambda: expr_mgr.blink_enabled,
             get_current_expression=lambda: expr_mgr.current_name,
             get_brightness=lambda: display.brightness,
+            get_thumbnail=expr_mgr.get_thumbnail,
         ))
 
     # 播放開機動畫
