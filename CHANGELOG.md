@@ -4,10 +4,16 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [v1.2.0] - 2026-02-25
+
 ### Added
 - Bad Apple!! 動畫表情（3286 幀 @ 15fps，128x32 黑白）
 - `scripts/generate_bad_apple.py` 自動下載影片並擷取幀
 - 表情 `hidden` 屬性，blink 動畫不再出現在可選表情清單中
+- CHANGELOG.md 版本變動紀錄
+
+### Changed
+- angry / very_angry 表情紅色飽和度提升
 
 ## [v1.1.0] - 2025-02-25
 
