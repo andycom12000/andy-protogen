@@ -11,17 +11,12 @@ from protogen.generators import FrameEffect
 class BreatheEffect(FrameEffect):
     """Pulsing brightness effect — makes the expression breathe."""
 
+    _param_attrs = {"period": "_period", "amplitude": "_amplitude"}
+
     def __init__(self, width: int, height: int, params: dict) -> None:
         super().__init__(width, height, params)
         self._period = params.get("period", 3.0)
         self._amplitude = params.get("amplitude", 0.5)
-
-    def update_params(self, params: dict) -> None:
-        super().update_params(params)
-        if "period" in params:
-            self._period = params["period"]
-        if "amplitude" in params:
-            self._amplitude = params["amplitude"]
 
     def apply(self, frame: Image.Image, t: float) -> Image.Image:
         # factor oscillates between (1 - amplitude) and 1.0

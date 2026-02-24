@@ -11,16 +11,13 @@ from protogen.generators import FrameEffect
 class GlitchEffect(FrameEffect):
     """Random glitch distortions — row shifts, channel offsets, color blocks."""
 
+    _param_attrs = {"intensity": "_intensity"}
+
     def __init__(self, width: int, height: int, params: dict) -> None:
         super().__init__(width, height, params)
         self._intensity = params.get("intensity", 0.3)
         self._burst_end = 0.0
         self._rng = random.Random()
-
-    def update_params(self, params: dict) -> None:
-        super().update_params(params)
-        if "intensity" in params:
-            self._intensity = params["intensity"]
 
     def apply(self, frame: Image.Image, t: float) -> Image.Image:
         # Decide whether to trigger a new burst

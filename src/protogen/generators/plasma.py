@@ -9,6 +9,8 @@ from protogen.generators import ProceduralGenerator
 class PlasmaGenerator(ProceduralGenerator):
     """Flowing plasma effect with overlapping sine waves."""
 
+    _param_attrs = {"speed": "_speed"}
+
     def __init__(self, width: int, height: int, params: dict) -> None:
         super().__init__(width, height, params)
         self._speed = params.get("speed", 1.0)
@@ -26,11 +28,6 @@ class PlasmaGenerator(ProceduralGenerator):
         self._x10 = self._x * 10
         self._y10 = self._y * 10
         self._xy8 = (self._x + self._y) * 8
-
-    def update_params(self, params: dict) -> None:
-        super().update_params(params)
-        if "speed" in params:
-            self._speed = params["speed"]
 
     def render(self, t: float) -> Image.Image:
         st = t * self._speed

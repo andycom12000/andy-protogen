@@ -8,6 +8,8 @@ from protogen.generators import ProceduralGenerator
 class ScrollingTextGenerator(ProceduralGenerator):
     """Horizontal scrolling text from right to left."""
 
+    _param_attrs = {"speed": "_speed"}
+
     def __init__(self, width: int, height: int, params: dict) -> None:
         super().__init__(width, height, params)
         self._text = params.get("text", "PROTOGEN")
@@ -31,8 +33,6 @@ class ScrollingTextGenerator(ProceduralGenerator):
 
     def update_params(self, params: dict) -> None:
         super().update_params(params)
-        if "speed" in params:
-            self._speed = params["speed"]
         if "color" in params:
             self._color = tuple(params["color"])
             self._render_text_image()

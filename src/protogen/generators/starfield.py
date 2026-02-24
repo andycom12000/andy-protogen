@@ -9,6 +9,8 @@ from protogen.generators import ProceduralGenerator
 class StarfieldGenerator(ProceduralGenerator):
     """3D starfield flying outward from center."""
 
+    _param_attrs = {"speed": "_speed"}
+
     def __init__(self, width: int, height: int, params: dict) -> None:
         super().__init__(width, height, params)
         self._star_count = params.get("star_count", 50)
@@ -26,8 +28,6 @@ class StarfieldGenerator(ProceduralGenerator):
 
     def update_params(self, params: dict) -> None:
         super().update_params(params)
-        if "speed" in params:
-            self._speed = params["speed"]
         if "color" in params:
             self._color = np.array(params["color"], dtype=np.float32)
 

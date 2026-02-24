@@ -9,6 +9,8 @@ from protogen.generators import ProceduralGenerator
 class MatrixRainGenerator(ProceduralGenerator):
     """Matrix-style falling code rain effect."""
 
+    _param_attrs = {"speed": "_speed", "density": "_density"}
+
     def __init__(self, width: int, height: int, params: dict) -> None:
         super().__init__(width, height, params)
         self._color = np.array(params.get("color", [0, 255, 70]), dtype=np.float32)
@@ -40,10 +42,6 @@ class MatrixRainGenerator(ProceduralGenerator):
 
     def update_params(self, params: dict) -> None:
         super().update_params(params)
-        if "speed" in params:
-            self._speed = params["speed"]
-        if "density" in params:
-            self._density = params["density"]
         if "color" in params:
             self._color = np.array(params["color"], dtype=np.float32)
             self._trail_colors = self._build_trail_colors()

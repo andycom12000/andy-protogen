@@ -9,6 +9,8 @@ from protogen.generators import FrameEffect
 class RainbowSweepEffect(FrameEffect):
     """Recolors non-black pixels with a sweeping rainbow based on x-position."""
 
+    _param_attrs = {"speed": "_speed"}
+
     def __init__(self, width: int, height: int, params: dict) -> None:
         super().__init__(width, height, params)
         self._speed = params.get("speed", 1.0)
@@ -16,11 +18,6 @@ class RainbowSweepEffect(FrameEffect):
         self._x_grid = np.tile(
             np.linspace(0, 1, width, endpoint=False, dtype=np.float32), (height, 1)
         )
-
-    def update_params(self, params: dict) -> None:
-        super().update_params(params)
-        if "speed" in params:
-            self._speed = params["speed"]
 
     def apply(self, frame: Image.Image, t: float) -> Image.Image:
         rgb_arr = np.array(frame)

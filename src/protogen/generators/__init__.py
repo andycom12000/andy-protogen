@@ -8,6 +8,8 @@ from PIL import Image
 class ProceduralGenerator(ABC):
     """Base class for procedural expression generators."""
 
+    _param_attrs: dict[str, str] = {}
+
     def __init__(self, width: int, height: int, params: dict) -> None:
         self.width = width
         self.height = height
@@ -17,8 +19,13 @@ class ProceduralGenerator(ABC):
         """Update generator parameters in-place.
 
         Subclasses can override to handle side effects.
+        Simple param-to-attribute syncing is handled automatically
+        via the _param_attrs class variable.
         """
         self.params.update(params)
+        for param_name, attr_name in self._param_attrs.items():
+            if param_name in params:
+                setattr(self, attr_name, params[param_name])
 
     @abstractmethod
     def render(self, t: float) -> Image.Image:
