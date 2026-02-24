@@ -202,4 +202,5 @@ class WebInput:
         )
         config = uvicorn.Config(app, host="0.0.0.0", port=self._port, log_level="info", ws="wsproto")
         server = uvicorn.Server(config)
+        server.install_signal_handlers = lambda: None  # main.py handles signals
         await server.serve()

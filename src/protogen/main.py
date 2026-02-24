@@ -129,20 +129,32 @@ async def async_main() -> None:
                     return  # 視窗被關閉
                 await asyncio.sleep(1 / 30)
 
-    # 優雅關閉
-    loop = asyncio.get_event_loop()
-    for sig in (signal.SIGINT, signal.SIGTERM):
-        try:
-            loop.add_signal_handler(sig, lambda: loop.stop())
-        except NotImplementedError:
-            pass  # Windows 不支援 add_signal_handler
-
-    await asyncio.gather(
+    tasks = asyncio.gather(
         input_mgr.run_all(),
         handle_commands(),
         pump_display_events(),
         pipeline.run_effect_loop(),
     )
+
+    # 優雅關閉：收到 SIGINT/SIGTERM 時取消所有 task
+    loop = asyncio.get_event_loop()
+    for sig in (signal.SIGINT, signal.SIGTERM):
+        try:
+            loop.add_signal_handler(sig, tasks.cancel)
+        except NotImplementedError:
+            pass  # Windows 不支援 add_signal_handler
+
+    try:
+        await tasks
+    except asyncio.CancelledError:
+        pass
+    finally:
+        # 清除 uvicorn 等產生的孤立 task
+        pending = [t for t in asyncio.all_tasks() if t is not asyncio.current_task()]
+        for t in pending:
+            t.cancel()
+        await asyncio.gather(*pending, return_exceptions=True)
+        display.clear()
 
 
 def main():
