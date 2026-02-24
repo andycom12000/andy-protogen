@@ -35,6 +35,10 @@ rm "$TMPFILE"
 echo "==> Extracting on Pi..."
 ssh "$PI_HOST" "mkdir -p $PI_DIR && cd $PI_DIR && tar xzf /tmp/protogen-deploy.tar.gz && rm /tmp/protogen-deploy.tar.gz"
 
+# Fix Windows CRLF line endings in shell scripts
+echo "==> Fixing CRLF line endings..."
+ssh "$PI_HOST" "find $PI_DIR/scripts $PI_DIR/systemd -type f -exec sed -i 's/\r$//' {} +"
+
 # Override mock to false for Pi
 echo "==> Setting display.mock=false..."
 ssh "$PI_HOST" "sed -i 's/mock: true/mock: false/' $PI_DIR/config.yaml"
