@@ -200,7 +200,7 @@ class WebInput:
             get_display_fps=self._get_display_fps,
             system_monitor=self._system_monitor,
         )
-        config = uvicorn.Config(app, host="0.0.0.0", port=self._port, log_level="info", ws="wsproto")
+        config = uvicorn.Config(app, host="0.0.0.0", port=self._port, log_level="info", ws="wsproto", loop="none")
         server = uvicorn.Server(config)
         server.install_signal_handlers = lambda: None  # main.py handles signals
         await server.serve()
