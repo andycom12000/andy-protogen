@@ -53,7 +53,7 @@
 
         .container {
             width: 100%;
-            max-width: 420px;
+            max-width: 480px;
             display: flex;
             flex-direction: column;
             gap: 24px;
@@ -135,7 +135,7 @@
         .expressions, .effects-grid {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
-            gap: 10px;
+            gap: 12px;
         }
 
         /* Grid 佔位高度防止 CLS */
@@ -154,8 +154,8 @@
             flex-direction: column;
             align-items: center;
             gap: 6px;
-            min-height: 72px;
-            padding: 10px 8px;
+            min-height: 80px;
+            padding: 12px 10px;
             font-family: 'Fira Sans', sans-serif;
             font-size: 0.8rem;
             font-weight: 500;
@@ -176,6 +176,9 @@
             object-fit: contain;
             image-rendering: pixelated;
             border-radius: 4px;
+            background: #1a1a2e;
+            border: 1px solid #252540;
+            padding: 2px;
         }
 
         .expressions button:hover, .effects-grid button:hover {
@@ -195,11 +198,16 @@
 
         .expressions button.active, .effects-grid button.active {
             border-color: var(--accent);
+            border-left: 3px solid var(--accent);
             background: var(--accent-dim);
             color: var(--accent);
             font-weight: 600;
             box-shadow: 0 0 15px rgba(0, 255, 255, 0.1), inset 0 0 15px rgba(0, 255, 255, 0.05);
             animation: activePulse 2s ease-in-out infinite;
+        }
+
+        .expressions button.active span::before, .effects-grid button.active span::before {
+            content: '\25B8 ';
         }
 
         @keyframes activePulse {
@@ -494,6 +502,16 @@
             font-size: 0.8rem;
             font-weight: 600;
             color: var(--accent);
+        }
+
+        /* 寬螢幕響應式 */
+        @media (min-width: 600px) {
+            .container { max-width: 640px; }
+            .expressions, .effects-grid { grid-template-columns: repeat(3, 1fr); }
+        }
+        @media (min-width: 900px) {
+            .container { max-width: 800px; }
+            .expressions { grid-template-columns: repeat(4, 1fr); }
         }
 
         /* 小螢幕響應式 */
