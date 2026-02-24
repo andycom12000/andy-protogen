@@ -122,6 +122,11 @@
             padding: 20px;
         }
 
+        .card-divider {
+            border-top: 1px solid var(--border);
+            margin: 14px 0;
+        }
+
         .card-label {
             font-family: 'Fira Code', monospace;
             font-size: 0.7rem;
@@ -519,7 +524,7 @@
             opacity: 0.4;
             pointer-events: none;
         }
-        .expressions button.active .param-badge, .effects-grid button.active .param-badge {
+        .effects-grid button.active .param-badge {
             opacity: 0.8;
         }
 
@@ -584,7 +589,7 @@
                 <input type="range" min="0" max="100" value="80" id="brightness"
                        aria-label="Brightness">
             </div>
-            <div style="border-top: 1px solid var(--border); margin: 14px 0;"></div>
+            <div class="card-divider"></div>
             <div class="toggle-row">
                 <span class="toggle-label">Auto Blink</span>
                 <label class="toggle-switch">
