@@ -39,6 +39,14 @@ def create_display(config: Config):
 async def async_main() -> None:
     config = Config.load()
     register_generators()
+    input_mgr = InputManager()
+
+    # GPIO must be initialised BEFORE piomatter on RPi 5 — requesting
+    # gpiod lines after PioMatter causes RP1 PIO xfer_data timeouts.
+    if not config.display.mock:
+        from protogen.inputs.button import ButtonInput
+        input_mgr.add_source(ButtonInput(pin=config.input.button_pin))
+
     display = create_display(config)
     display.set_brightness(config.display.brightness)
 
@@ -51,7 +59,6 @@ async def async_main() -> None:
         blink_interval_max=config.blink_interval_max,
         transition_duration_ms=config.transition_duration_ms,
     )
-    input_mgr = InputManager()
 
     def make_effect_thumbnail(name: str) -> bytes | None:
         effect = effects.get(name)
@@ -72,11 +79,6 @@ async def async_main() -> None:
         return buf.getvalue()
 
     system_monitor = SystemMonitor()
-
-    # 註冊輸入來源
-    if not config.display.mock:
-        from protogen.inputs.button import ButtonInput
-        input_mgr.add_source(ButtonInput(pin=config.input.button_pin))
 
     if config.input.web_enabled:
         from protogen.inputs.web import WebInput
