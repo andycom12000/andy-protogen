@@ -82,17 +82,24 @@ class ExpressionManager:
         fps = 20
         duration_s = self._transition_duration_ms / 1000.0
         total_frames = max(1, int(duration_s * fps))
+        interval = 1.0 / fps
 
         # Pre-compute diff in RGB space (float32, one-time cost)
         old_arr = np.array(old_frame.convert("RGB"), dtype=np.float32)
         new_arr = np.array(new_frame.convert("RGB"), dtype=np.float32)
         diff = new_arr - old_arr
 
+        # Pre-allocate buffer to avoid per-frame allocation
+        blend_buf = np.empty_like(old_arr)
+
         for i in range(1, total_frames + 1):
             alpha = i / total_frames
-            blended = (old_arr + diff * alpha).clip(0, 255).astype(np.uint8)
-            self._display.show_image(Image.fromarray(blended, "RGB"))
-            await asyncio.sleep(1.0 / fps)
+            np.multiply(diff, alpha, out=blend_buf)
+            np.add(old_arr, blend_buf, out=blend_buf)
+            self._display.show_image(
+                Image.fromarray(blend_buf.astype(np.uint8), "RGB")
+            )
+            await asyncio.sleep(interval)
 
         # After transition completes, show the target expression normally
         self._show_expression(target_expr)
