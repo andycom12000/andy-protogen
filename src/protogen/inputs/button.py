@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+from datetime import timedelta
 from typing import Callable, Awaitable
 
 from protogen.commands import Command, InputEvent
@@ -24,7 +25,7 @@ class ButtonInput:
                     direction=Direction.INPUT,
                     bias=Bias.PULL_UP,
                     edge_detection=Edge.FALLING,
-                    debounce_period=self._debounce,
+                    debounce_period=timedelta(seconds=self._debounce),
                 )
             }
         )

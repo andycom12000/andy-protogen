@@ -9,7 +9,7 @@ class HUB75Display(DisplayBase):
 
     def __init__(self, width: int = 128, height: int = 32, n_addr_lines: int = 4):
         super().__init__(width, height)
-        import piomatter
+        import adafruit_blinka_raspberry_pi5_piomatter as piomatter
 
         self._framebuffer = np.zeros((height, width, 3), dtype=np.uint8)
         self._matrix = piomatter.PioMatter(
