@@ -1,4 +1,7 @@
+import json
 from pathlib import Path
+
+from PIL import Image
 
 from protogen.expression import Expression, ExpressionType, load_expressions
 
@@ -57,3 +60,28 @@ def test_expression_animation(tmp_path):
     assert "blink" in expressions
     assert expressions["blink"].type == ExpressionType.ANIMATION
     assert len(expressions["blink"].frames) == 3
+
+
+def test_load_expressions_skips_invalid_entry(tmp_path):
+    """Entries with missing required fields are skipped."""
+    manifest = {
+        "expressions": {
+            "good": {"type": "static", "file": "base/good.png"},
+            "bad_no_type": {"file": "base/bad.png"},
+            "bad_no_file": {"type": "static"},
+        },
+        "effects": {},
+        "default": "good",
+    }
+    (tmp_path / "manifest.json").write_text(
+        json.dumps(manifest), encoding="utf-8"
+    )
+    base = tmp_path / "base"
+    base.mkdir()
+    img = Image.new("RGB", (128, 32), (0, 0, 0))
+    img.save(base / "good.png")
+
+    result = load_expressions(tmp_path)
+    assert "good" in result
+    assert "bad_no_type" not in result
+    assert "bad_no_file" not in result

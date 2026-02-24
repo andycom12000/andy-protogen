@@ -32,11 +32,19 @@ def load_expressions(expressions_dir: str | Path) -> dict[str, Expression]:
         manifest = json.load(f)
 
     result: dict[str, Expression] = {}
-    for name, data in manifest["expressions"].items():
-        expr_type = ExpressionType(data["type"])
+    for name, data in manifest.get("expressions", {}).items():
+        try:
+            expr_type = ExpressionType(data["type"])
+        except (KeyError, ValueError):
+            continue
 
         if expr_type == ExpressionType.STATIC:
-            img_path = expressions_dir / data["file"]
+            file_path = data.get("file")
+            if file_path is None:
+                continue
+            img_path = expressions_dir / file_path
+            if not img_path.exists():
+                continue
             image = Image.open(img_path).convert("RGB")
             result[name] = Expression(
                 name=name,
@@ -45,7 +53,12 @@ def load_expressions(expressions_dir: str | Path) -> dict[str, Expression]:
                 idle_animation=data.get("idle_animation"),
             )
         elif expr_type == ExpressionType.ANIMATION:
-            frames_dir = expressions_dir / data["frames_dir"]
+            frames_dir_name = data.get("frames_dir")
+            if frames_dir_name is None:
+                continue
+            frames_dir = expressions_dir / frames_dir_name
+            if not frames_dir.exists():
+                continue
             frame_files = sorted(frames_dir.glob("frame_*.png"))
             frames = [Image.open(f).convert("RGB") for f in frame_files]
             result[name] = Expression(

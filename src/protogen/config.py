@@ -13,6 +13,9 @@ class DisplayConfig:
     mock: bool = False
     mock_scale: int = 8
 
+    def __post_init__(self) -> None:
+        self.brightness = max(0, min(100, self.brightness))
+
 
 @dataclass
 class InputConfig:
