@@ -79,6 +79,12 @@
       "frames_dir": "animations/loading_bar",
       "fps": 6,
       "loop": true
+    },
+    "bad_apple": {
+      "type": "animation",
+      "frames_dir": "animations/bad_apple",
+      "fps": 15,
+      "loop": true
     }
   },
   "effects": {
