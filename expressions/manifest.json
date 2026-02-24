@@ -12,15 +12,18 @@
     },
     "angry": {
       "type": "static",
-      "file": "base/angry.png"
+      "file": "base/angry.png",
+      "idle_animation": "angry_blink"
     },
     "crying": {
       "type": "static",
-      "file": "base/crying.png"
+      "file": "base/crying.png",
+      "idle_animation": "crying_blink"
     },
     "shocked": {
       "type": "static",
-      "file": "base/shocked.png"
+      "file": "base/shocked.png",
+      "idle_animation": "shocked_blink"
     },
     "helpless": {
       "type": "static",
@@ -28,7 +31,8 @@
     },
     "very_angry": {
       "type": "static",
-      "file": "base/very_angry.png"
+      "file": "base/very_angry.png",
+      "idle_animation": "very_angry_blink"
     },
     "bsod": {
       "type": "static",
@@ -37,6 +41,30 @@
     "blink": {
       "type": "animation",
       "frames_dir": "animations/blink",
+      "fps": 15,
+      "loop": false
+    },
+    "angry_blink": {
+      "type": "animation",
+      "frames_dir": "animations/angry_blink",
+      "fps": 15,
+      "loop": false
+    },
+    "very_angry_blink": {
+      "type": "animation",
+      "frames_dir": "animations/very_angry_blink",
+      "fps": 15,
+      "loop": false
+    },
+    "crying_blink": {
+      "type": "animation",
+      "frames_dir": "animations/crying_blink",
+      "fps": 15,
+      "loop": false
+    },
+    "shocked_blink": {
+      "type": "animation",
+      "frames_dir": "animations/shocked_blink",
       "fps": 15,
       "loop": false
     },
