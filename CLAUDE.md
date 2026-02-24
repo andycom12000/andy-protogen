@@ -84,6 +84,12 @@ Input Sources → InputManager (asyncio.Queue) → handle_commands() → Express
 3. **uvicorn WebSocket origin 檢查**
    `websockets>=14` 預設做 origin 檢查 → 403。**在 `uvicorn.Config` 中使用 `ws="wsproto"`。**
 
+4. **RPi 5: gpiod 必須在 piomatter 之前初始化**
+   在 RP1 晶片上，若先建立 `PioMatter`（啟動 PIO/DMA）再呼叫 `gpiod.Chip.request_lines()`（設定 GPIO 邊緣偵測），會觸發 `xfer_data() returned error -1 (errno=Connection timed out)`，導致 HUB75 面板全黑。**`ButtonInput`（gpiod）必須在 `HUB75Display`（piomatter）之前建立。**
+
+5. **RPi 5: uvicorn 的 uvloop 會干擾 piomatter**
+   uvicorn 預設啟用 uvloop，`uvloop.install()` 全域替換 event loop policy，導致 piomatter PIO/DMA 中斷、HUB75 面板全黑。**在 `uvicorn.Config` 中設定 `loop="none"` 停用 uvloop。**
+
 ### 測試
 
 - 使用 pytest-asyncio，`asyncio_mode = "auto"`
