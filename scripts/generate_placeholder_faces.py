@@ -49,7 +49,7 @@ def _draw_default_eye(draw: ImageDraw.ImageDraw, cx: int, cy: int,
     tcx, tcy = size, size
     tmp_draw.ellipse([tcx - rx, tcy - ry, tcx + rx, tcy + ry],
                      fill=(*color, 255))
-    tmp = tmp.rotate(angle, center=(tcx, tcy), resample=PIL.Image.BILINEAR)
+    tmp = tmp.rotate(angle, center=(tcx, tcy), resample=PIL.Image.Resampling.BILINEAR)
 
     # Paste onto the main image
     draw._image.paste(color, (cx - size, cy - size), tmp.split()[3])
@@ -362,7 +362,7 @@ def generate_blink_frames(base_img: Image.Image, n_frames: int = 7):
                     tc = size
                     tmp_draw.ellipse([tc - rx, tc - squished_ry, tc + rx, tc + squished_ry],
                                      fill=(*CYAN, 255))
-                    tmp = tmp.rotate(angle, center=(tc, tc), resample=Image.BILINEAR)
+                    tmp = tmp.rotate(angle, center=(tc, tc), resample=Image.Resampling.BILINEAR)
                     frame.paste(CYAN, (ecx - size, ecy - size), tmp.split()[3])
             # Always draw nose and mouth on blink frames
             _draw_nose_dots(draw)

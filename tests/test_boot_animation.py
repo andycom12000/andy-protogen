@@ -1,4 +1,5 @@
 import pytest
+import numpy as np
 from PIL import Image
 
 from protogen.boot_animation import render_boot_frame, play_boot_animation
@@ -16,17 +17,15 @@ def test_render_boot_frame_not_all_black_during_active_phases():
     """During active phases (t=0.15 scanline, t=0.5 text), frame should have content."""
     frame = render_boot_frame(128, 32, t=0.5)
     # At least some pixels should be non-black
-    pixels = list(frame.getdata())
-    non_black = [p for p in pixels if p != (0, 0, 0)]
-    assert len(non_black) > 0
+    arr = np.asarray(frame)
+    assert arr.any()
 
 
 def test_render_boot_frame_fades_to_black():
     """At t=1.0 (end of animation), frame should be fully black."""
     frame = render_boot_frame(128, 32, t=1.0)
-    pixels = list(frame.getdata())
-    non_black = [p for p in pixels if p != (0, 0, 0)]
-    assert len(non_black) == 0
+    arr = np.asarray(frame)
+    assert not arr.any()
 
 
 @pytest.mark.asyncio

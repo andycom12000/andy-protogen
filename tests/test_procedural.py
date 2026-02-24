@@ -1,4 +1,5 @@
 import pytest
+import numpy as np
 from PIL import Image
 
 from protogen.generators import ProceduralGenerator, GENERATORS
@@ -48,9 +49,8 @@ def test_matrix_rain_renders():
     assert frame.size == (128, 32)
     assert frame.mode == "RGB"
     # After 1 second, some pixels should be non-black
-    pixels = list(frame.getdata())
-    non_black = [p for p in pixels if p != (0, 0, 0)]
-    assert len(non_black) > 0
+    arr = np.asarray(frame)
+    assert arr.any()  # at least one non-zero pixel
 
 
 def test_matrix_rain_default_params():
@@ -70,9 +70,8 @@ def test_starfield_renders():
     gen = StarfieldGenerator(128, 32, {"star_count": 40, "speed": 1.0})
     frame = gen.render(1.0)
     assert frame.size == (128, 32)
-    pixels = list(frame.getdata())
-    non_black = [p for p in pixels if p != (0, 0, 0)]
-    assert len(non_black) > 0
+    arr = np.asarray(frame)
+    assert arr.any()  # at least one non-zero pixel
 
 
 def test_starfield_default_params():
@@ -91,9 +90,8 @@ def test_plasma_renders():
     gen = PlasmaGenerator(128, 32, {"speed": 1.0})
     frame = gen.render(1.0)
     assert frame.size == (128, 32)
-    pixels = list(frame.getdata())
-    non_black = [p for p in pixels if p != (0, 0, 0)]
-    assert len(non_black) > 0
+    arr = np.asarray(frame)
+    assert arr.any()  # at least one non-zero pixel
 
 
 def test_plasma_default_params():
@@ -112,9 +110,8 @@ def test_scrolling_text_renders():
     gen = ScrollingTextGenerator(128, 32, {"text": "HELLO", "color": [0, 255, 255]})
     frame = gen.render(0.5)
     assert frame.size == (128, 32)
-    pixels = list(frame.getdata())
-    non_black = [p for p in pixels if p != (0, 0, 0)]
-    assert len(non_black) > 0
+    arr = np.asarray(frame)
+    assert arr.any()  # at least one non-zero pixel
 
 
 def test_scrolling_text_set_text():
