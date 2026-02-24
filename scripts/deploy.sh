@@ -45,7 +45,7 @@ ssh "$PI_HOST" "sed -i 's/mock: true/mock: false/' $PI_DIR/config.yaml"
 
 if $DO_INSTALL; then
     echo "==> Installing dependencies (this may take a while)..."
-    ssh "$PI_HOST" "cd $PI_DIR && python3 -m venv .venv && source .venv/bin/activate && pip install -e '.[rpi,web]'" 2>&1 | tail -5
+    ssh "$PI_HOST" "cd $PI_DIR && python3 -m venv .venv && source .venv/bin/activate && pip install -e '.[rpi,web,monitoring]'" 2>&1 | tail -5
 fi
 
 if $DO_RESTART; then
