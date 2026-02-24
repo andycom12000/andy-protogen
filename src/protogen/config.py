@@ -1,7 +1,10 @@
+import logging
 from dataclasses import dataclass, field
 from pathlib import Path
 
 import yaml
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -52,4 +55,5 @@ class Config:
                      "transition_duration_ms"):
             if key in data:
                 setattr(config, key, data[key])
+        logger.info("loaded config from %s", path)
         return config

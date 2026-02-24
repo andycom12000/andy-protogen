@@ -1,9 +1,12 @@
 from __future__ import annotations
 
 import asyncio
+import logging
 from typing import Awaitable, Callable, Protocol
 
 from protogen.commands import Command
+
+logger = logging.getLogger(__name__)
 
 
 class InputSource(Protocol):
@@ -17,6 +20,7 @@ class InputManager:
 
     def add_source(self, source: InputSource) -> None:
         self._sources.append(source)
+        logger.info("registered input source: %s", type(source).__name__)
 
     async def put(self, cmd: Command) -> None:
         await self._queue.put(cmd)
@@ -25,6 +29,7 @@ class InputManager:
         return await self._queue.get()
 
     async def run_all(self) -> None:
+        logger.info("starting %d input sources", len(self._sources))
         tasks = [
             asyncio.create_task(source.run(self.put))
             for source in self._sources

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import logging
 import time
 from collections import deque
 
@@ -9,6 +10,8 @@ from PIL import Image
 
 from protogen.display.base import DisplayBase
 from protogen.generators import ProceduralGenerator, FrameEffect, GENERATORS
+
+logger = logging.getLogger(__name__)
 
 
 class RenderPipeline(DisplayBase):
@@ -52,6 +55,7 @@ class RenderPipeline(DisplayBase):
         self._last_base_id = None
         self._last_composited_bytes = None
         self._effect_active.set()
+        logger.info("effect set: %s (fps=%d)", name, fps)
         if self._pending_text is not None and hasattr(self._effect, "set_text"):
             self._effect.set_text(self._pending_text)
             self._pending_text = None
@@ -61,6 +65,7 @@ class RenderPipeline(DisplayBase):
             self._effect.update_params(params)
 
     def clear_effect(self) -> None:
+        logger.info("effect cleared")
         self._effect = None
         self._effect_name = None
         self._effect_frame = None

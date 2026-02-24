@@ -1,7 +1,11 @@
+import logging
+
 import numpy as np
 from PIL import Image
 
 from protogen.display.base import DisplayBase
+
+logger = logging.getLogger(__name__)
 
 
 class MockDisplay(DisplayBase):
@@ -11,6 +15,7 @@ class MockDisplay(DisplayBase):
     def __init__(self, width: int = 128, height: int = 32, scale: int = 8, use_pygame: bool = False):
         super().__init__(width, height)
         self.scale = scale
+        logger.info("MockDisplay initialised (%dx%d, scale=%d)", width, height, scale)
         self.brightness = 100
         self._brightness_lut = np.arange(256, dtype=np.uint8)
         self.last_image: Image.Image | None = None
@@ -47,6 +52,7 @@ class MockDisplay(DisplayBase):
 
     def set_brightness(self, value: int) -> None:
         self.brightness = max(0, min(100, value))
+        logger.debug("brightness set to %d", self.brightness)
         self._brightness_lut = np.array(
             [min(255, i * self.brightness // 100) for i in range(256)],
             dtype=np.uint8,

@@ -1,11 +1,14 @@
 from __future__ import annotations
 
 import json
+import logging
 from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
 
 from PIL import Image
+
+logger = logging.getLogger(__name__)
 
 
 class ExpressionType(Enum):
@@ -36,14 +39,17 @@ def load_expressions(expressions_dir: str | Path) -> dict[str, Expression]:
         try:
             expr_type = ExpressionType(data["type"])
         except (KeyError, ValueError):
+            logger.warning("skipping invalid expression: %s", name)
             continue
 
         if expr_type == ExpressionType.STATIC:
             file_path = data.get("file")
             if file_path is None:
+                logger.warning("skipping invalid expression: %s", name)
                 continue
             img_path = expressions_dir / file_path
             if not img_path.exists():
+                logger.warning("skipping invalid expression: %s", name)
                 continue
             image = Image.open(img_path).convert("RGB")
             result[name] = Expression(
@@ -55,9 +61,11 @@ def load_expressions(expressions_dir: str | Path) -> dict[str, Expression]:
         elif expr_type == ExpressionType.ANIMATION:
             frames_dir_name = data.get("frames_dir")
             if frames_dir_name is None:
+                logger.warning("skipping invalid expression: %s", name)
                 continue
             frames_dir = expressions_dir / frames_dir_name
             if not frames_dir.exists():
+                logger.warning("skipping invalid expression: %s", name)
                 continue
             frame_files = sorted(frames_dir.glob("frame_*.png"))
             frames = [Image.open(f).convert("RGB") for f in frame_files]
@@ -70,6 +78,7 @@ def load_expressions(expressions_dir: str | Path) -> dict[str, Expression]:
                 next_expression=data.get("next"),
             )
 
+    logger.info("loaded %d expressions from %s", len(result), expressions_dir)
     return result
 
 
