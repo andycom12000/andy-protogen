@@ -372,6 +372,186 @@ def generate_blink_frames(base_img: Image.Image, n_frames: int = 7):
     return frames
 
 
+def generate_angry_blink_frames(base_img: Image.Image, n_frames: int = 7):
+    """Generate blink animation for angry expression.
+
+    Uses flatter red oval eyes that squish vertically to close.
+    """
+    frames = []
+    close_amounts = [0.0, 0.33, 0.66, 1.0, 0.66, 0.33, 0.0]
+
+    for close in close_amounts:
+        if close <= 0.0:
+            frames.append(base_img.copy())
+            continue
+
+        frame = Image.new("RGB", (WIDTH, HEIGHT), BG)
+        draw = ImageDraw.Draw(frame)
+
+        if close >= 1.0:
+            _draw_closed_eye(draw, *LEFT_EYE, color=RED)
+            _draw_closed_eye(draw, *RIGHT_EYE, color=RED)
+        else:
+            squished_ry = max(1, int(5 * (1 - close)))
+            if squished_ry < 2:
+                _draw_closed_eye(draw, *LEFT_EYE, color=RED)
+                _draw_closed_eye(draw, *RIGHT_EYE, color=RED)
+            else:
+                _draw_default_eye(draw, *LEFT_EYE, color=RED, is_left=True, rx=12, ry=squished_ry)
+                _draw_default_eye(draw, *RIGHT_EYE, color=RED, is_left=False, rx=12, ry=squished_ry)
+            # Angry brow lines (same as angry expression)
+            lx, ly = LEFT_EYE
+            rcx, rcy = RIGHT_EYE
+            draw.line([(lx - 12, ly - 9), (lx + 12, ly - 5)], fill=RED, width=2)
+            draw.line([(rcx - 12, rcy - 5), (rcx + 12, rcy - 9)], fill=RED, width=2)
+
+        _draw_nose_dots(draw, color=RED)
+        _draw_mouth_zigzag_angry(draw, color=RED)
+        frames.append(frame)
+    return frames
+
+
+def generate_very_angry_blink_frames(base_img: Image.Image, n_frames: int = 7):
+    """Generate blink animation for very_angry expression.
+
+    Uses egg-shaped red eyes cut by heavy brows, squishing to close.
+    Mirrors left half to right for perfect symmetry.
+    """
+    frames = []
+    close_amounts = [0.0, 0.33, 0.66, 1.0, 0.66, 0.33, 0.0]
+
+    for close in close_amounts:
+        if close <= 0.0:
+            frames.append(base_img.copy())
+            continue
+
+        frame = Image.new("RGB", (WIDTH, HEIGHT), BG)
+        draw = ImageDraw.Draw(frame)
+
+        if close >= 1.0:
+            _draw_closed_eye(draw, *LEFT_EYE, color=RED)
+            _draw_closed_eye(draw, *RIGHT_EYE, color=RED)
+        else:
+            squished_ry = max(1, int(8 * (1 - close)))
+            for (cx, cy), is_left in [(LEFT_EYE, True), (RIGHT_EYE, False)]:
+                if squished_ry < 2:
+                    _draw_closed_eye(draw, cx, cy, color=RED)
+                else:
+                    _draw_default_eye(draw, cx, cy, color=RED, is_left=is_left,
+                                      rx=10, ry=squished_ry,
+                                      angle=-12 if is_left else 12)
+                # Heavy brow mask + line (same as very_angry)
+                brow_y_outer = cy - 6
+                brow_y_inner = cy - 1
+                if is_left:
+                    pts_mask = [(cx - 15, cy - 14), (cx + 15, cy - 14),
+                                (cx + 15, brow_y_inner), (cx - 15, brow_y_outer)]
+                    draw.polygon(pts_mask, fill=BG)
+                    draw.line([(cx - 13, brow_y_outer), (cx + 13, brow_y_inner)],
+                              fill=RED, width=3)
+                else:
+                    pts_mask = [(cx - 15, cy - 14), (cx + 15, cy - 14),
+                                (cx - 15, brow_y_inner + 2), (cx + 15, brow_y_outer + 2)]
+                    draw.polygon(pts_mask, fill=BG)
+                    draw.line([(cx - 13, brow_y_inner), (cx + 13, brow_y_outer)],
+                              fill=RED, width=3)
+
+        _draw_nose_dots(draw, color=RED)
+        # Wider zigzag mouth (same as very_angry)
+        pts = [
+            (50, 29), (53, 27), (56, 29), (59, 26), (62, 28),
+            (64, 22), (66, 28), (69, 26), (72, 29), (75, 27), (78, 29),
+        ]
+        draw.line(pts, fill=RED, width=1)
+        # Mirror for symmetry
+        left_half = frame.crop((0, 0, 64, 32))
+        right_half = left_half.transpose(Image.FLIP_LEFT_RIGHT)
+        frame.paste(right_half, (64, 0))
+        frames.append(frame)
+    return frames
+
+
+def generate_crying_blink_frames(base_img: Image.Image, n_frames: int = 7):
+    """Generate blink animation for crying expression.
+
+    Uses teardrop outline eyes that squish vertically to close.
+    Teardrops persist through all frames.
+    """
+    frames = []
+    close_amounts = [0.0, 0.33, 0.66, 1.0, 0.66, 0.33, 0.0]
+
+    for close in close_amounts:
+        if close <= 0.0:
+            frames.append(base_img.copy())
+            continue
+
+        frame = Image.new("RGB", (WIDTH, HEIGHT), BG)
+        draw = ImageDraw.Draw(frame)
+
+        if close >= 1.0:
+            _draw_closed_eye(draw, *LEFT_EYE)
+            _draw_closed_eye(draw, *RIGHT_EYE)
+        else:
+            squished_ry = max(1, int(6 * (1 - close)))
+            for ecx, ecy in [LEFT_EYE, RIGHT_EYE]:
+                if squished_ry < 2:
+                    _draw_closed_eye(draw, ecx, ecy)
+                else:
+                    rx = 8
+                    draw.ellipse([ecx - rx, ecy - squished_ry, ecx + rx, ecy + squished_ry],
+                                 outline=CYAN, width=2)
+
+        # Teardrops always visible (even when eyes closed)
+        bright = (100, 255, 240)
+        for ecx, ecy in [LEFT_EYE, RIGHT_EYE]:
+            draw.line([(ecx - 3, ecy + 7), (ecx - 3, ecy + 13)], fill=bright, width=2)
+            draw.line([(ecx + 3, ecy + 7), (ecx + 3, ecy + 11)], fill=bright, width=2)
+
+        _draw_nose_dots(draw)
+        _draw_mouth_zigzag_frown(draw)
+        frames.append(frame)
+    return frames
+
+
+def generate_shocked_blink_frames(base_img: Image.Image, n_frames: int = 7):
+    """Generate blink animation for shocked expression.
+
+    Uses large round eyes that shrink vertically to close.
+    """
+    frames = []
+    close_amounts = [0.0, 0.33, 0.66, 1.0, 0.66, 0.33, 0.0]
+
+    for close in close_amounts:
+        if close <= 0.0:
+            frames.append(base_img.copy())
+            continue
+
+        frame = Image.new("RGB", (WIDTH, HEIGHT), BG)
+        draw = ImageDraw.Draw(frame)
+
+        if close >= 1.0:
+            _draw_closed_eye(draw, *LEFT_EYE)
+            _draw_closed_eye(draw, *RIGHT_EYE)
+        else:
+            squished_r = max(1, int(10 * (1 - close)))
+            for ecx, ecy in [LEFT_EYE, RIGHT_EYE]:
+                if squished_r < 2:
+                    _draw_closed_eye(draw, ecx, ecy)
+                else:
+                    draw.ellipse([ecx - 10, ecy - squished_r, ecx + 10, ecy + squished_r],
+                                 fill=CYAN)
+
+        _draw_nose_dots(draw)
+        # Upper half egg mouth (same as shocked)
+        draw.chord([48, 22, 80, 38], 180, 360, fill=CYAN)
+        draw.ellipse([55, 19, 63, 29], fill=BG)
+        draw.ellipse([57, 19, 65, 29], fill=CYAN)
+        draw.ellipse([65, 19, 73, 29], fill=BG)
+        draw.ellipse([63, 19, 71, 29], fill=CYAN)
+        frames.append(frame)
+    return frames
+
+
 def generate_loading_spinner_frames() -> list[Image.Image]:
     """Generate a spinning dots animation (8 frames).
 
@@ -510,6 +690,21 @@ def main():
     for i, frame in enumerate(blink_frames):
         frame.save(blink_dir / f"frame_{i:02d}.png")
     print(f"Generated: {len(blink_frames)} blink frames")
+
+    # Generate per-expression blink animations
+    blink_generators = {
+        "angry_blink": (generate_angry_blink_frames, "angry"),
+        "very_angry_blink": (generate_very_angry_blink_frames, "very_angry"),
+        "crying_blink": (generate_crying_blink_frames, "crying"),
+        "shocked_blink": (generate_shocked_blink_frames, "shocked"),
+    }
+    for blink_name, (gen_func, base_expr) in blink_generators.items():
+        anim_dir = OUT_DIR / "animations" / blink_name
+        anim_dir.mkdir(parents=True, exist_ok=True)
+        blink_frames = gen_func(generated_images[base_expr])
+        for i, frame in enumerate(blink_frames):
+            frame.save(anim_dir / f"frame_{i:02d}.png")
+        print(f"Generated: {len(blink_frames)} {blink_name} frames")
 
     # Generate loading spinner animation frames
     spinner_dir = OUT_DIR / "animations" / "loading_spinner"
