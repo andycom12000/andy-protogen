@@ -125,3 +125,18 @@ def test_scrolling_text_default_params():
     gen = ScrollingTextGenerator(128, 32, {})
     frame = gen.render(0.0)
     assert frame.size == (128, 32)
+
+
+def test_frame_effect_set_base_frame():
+    """FrameEffect exposes set_base_frame() public method."""
+    from protogen.generators import FrameEffect
+
+    class DummyEffect(FrameEffect):
+        def apply(self, frame, t):
+            return frame
+
+    effect = DummyEffect(128, 32, {})
+    new_frame = Image.new("RGB", (128, 32), (255, 0, 0))
+    effect.set_base_frame(new_frame)
+    rendered = effect.render(0.0)
+    assert rendered.getpixel((0, 0)) == (255, 0, 0)

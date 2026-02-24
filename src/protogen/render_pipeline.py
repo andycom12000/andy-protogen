@@ -88,7 +88,7 @@ class RenderPipeline(DisplayBase):
                     # Only update _base_frame when the expression frame changes
                     frame_id = id(self.last_frame)
                     if frame_id != self._last_base_id:
-                        self._effect._base_frame = self.last_frame
+                        self._effect.set_base_frame(self.last_frame)
                         self._last_base_id = frame_id
                 self._effect_frame = self._effect.render(t)
                 self._push_composited()

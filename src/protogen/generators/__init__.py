@@ -36,6 +36,10 @@ class FrameEffect(ProceduralGenerator):
         super().__init__(width, height, params)
         self._base_frame: Image.Image = Image.new("RGB", (width, height))
 
+    def set_base_frame(self, frame: Image.Image) -> None:
+        """Update the base frame used by this effect."""
+        self._base_frame = frame
+
     @abstractmethod
     def apply(self, frame: Image.Image, t: float) -> Image.Image:
         """Apply the effect to a base frame.
