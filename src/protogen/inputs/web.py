@@ -94,8 +94,10 @@ def _create_app(
 
     @app.post("/api/effect/{name}/params")
     async def update_effect_params(name: str, data: dict):
-        await put(Command(event=InputEvent.SET_EFFECT, value=name))
-        await put(Command(event=InputEvent.SET_EFFECT_PARAMS, value=data))
+        await put(Command(
+            event=InputEvent.SET_EFFECT_WITH_PARAMS,
+            value={"name": name, "params": data},
+        ))
         return {"status": "ok"}
 
     @app.post("/api/text")
@@ -150,8 +152,10 @@ def _create_app(
                 elif action == "ping":
                     pass
                 elif action == "update_effect_params":
-                    await put(Command(event=InputEvent.SET_EFFECT, value=data["name"]))
-                    await put(Command(event=InputEvent.SET_EFFECT_PARAMS, value=data.get("params", {})))
+                    await put(Command(
+                        event=InputEvent.SET_EFFECT_WITH_PARAMS,
+                        value={"name": data["name"], "params": data.get("params", {})},
+                    ))
         except Exception as exc:
             logger.debug("WebSocket closed: %s", exc)
 

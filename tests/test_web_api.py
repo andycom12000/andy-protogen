@@ -191,8 +191,9 @@ def test_update_effect_params_endpoint(web_app):
         json={"speed": 2.0, "density": 0.5},
     )
     assert response.status_code == 200
-    assert len(commands) == 2
-    assert commands[0].event == InputEvent.SET_EFFECT
-    assert commands[0].value == "matrix_rain"
-    assert commands[1].event == InputEvent.SET_EFFECT_PARAMS
-    assert commands[1].value == {"speed": 2.0, "density": 0.5}
+    assert len(commands) == 1
+    assert commands[0].event == InputEvent.SET_EFFECT_WITH_PARAMS
+    assert commands[0].value == {
+        "name": "matrix_rain",
+        "params": {"speed": 2.0, "density": 0.5},
+    }
