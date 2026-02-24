@@ -4,6 +4,18 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [v1.3.0] - 2026-02-25
+
+Phase 3 架構重構。
+
+### Changed
+- 拆分 `ExpressionManager` 為三個獨立元件：
+  - `ExpressionStore` — 表情資料查詢（names、get、thumbnail）
+  - `BlinkController` — 眨眼邏輯與隨機間隔控制
+  - `ExpressionManager` — 精簡為門面（facade），負責動畫/轉場並協調子元件
+- `RenderPipeline` 從繼承 `DisplayBase` 改為組合模式，不再假裝「是一個 display」
+- `main.py` 元件建立順序明確化，`ExpressionStore` 獨立建立後注入
+
 ## [v1.2.0] - 2026-02-25
 
 ### Added
