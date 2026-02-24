@@ -3,7 +3,6 @@ from __future__ import annotations
 import asyncio
 import logging
 import time
-from collections import deque
 
 import numpy as np
 from PIL import Image
@@ -30,7 +29,8 @@ class RenderPipeline(DisplayBase):
         self._effect_name: str | None = None
         self._effect_fps: int = 20
         self._effect_frame: Image.Image | None = None
-        self._frame_times: deque[float] = deque(maxlen=30)
+        self._last_frame_time: float = 0.0
+        self._ema_interval: float = 0.0
         self._pending_text: str | None = None
         self._black_frame = Image.new("RGB", (self.width, self.height), (0, 0, 0))
         self._last_base_id: int | None = None
@@ -120,15 +120,19 @@ class RenderPipeline(DisplayBase):
         self._display.show_image(Image.fromarray(composited_arr, "RGB"))
 
     def get_fps(self) -> float:
-        if len(self._frame_times) < 2:
+        if self._ema_interval <= 0:
             return 0.0
-        elapsed = self._frame_times[-1] - self._frame_times[0]
-        if elapsed <= 0:
-            return 0.0
-        return (len(self._frame_times) - 1) / elapsed
+        return 1.0 / self._ema_interval
 
     def show_image(self, image: Image.Image) -> None:
-        self._frame_times.append(time.monotonic())
+        now = time.monotonic()
+        if self._last_frame_time > 0:
+            dt = now - self._last_frame_time
+            if self._ema_interval <= 0:
+                self._ema_interval = dt
+            else:
+                self._ema_interval += 0.1 * (dt - self._ema_interval)
+        self._last_frame_time = now
         self.last_frame = image
         if self._effect is not None and self._effect_frame is not None:
             self._push_composited()
