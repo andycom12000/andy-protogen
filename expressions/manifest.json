@@ -42,31 +42,36 @@
       "type": "animation",
       "frames_dir": "animations/blink",
       "fps": 15,
-      "loop": false
+      "loop": false,
+      "hidden": true
     },
     "angry_blink": {
       "type": "animation",
       "frames_dir": "animations/angry_blink",
       "fps": 15,
-      "loop": false
+      "loop": false,
+      "hidden": true
     },
     "very_angry_blink": {
       "type": "animation",
       "frames_dir": "animations/very_angry_blink",
       "fps": 15,
-      "loop": false
+      "loop": false,
+      "hidden": true
     },
     "crying_blink": {
       "type": "animation",
       "frames_dir": "animations/crying_blink",
       "fps": 15,
-      "loop": false
+      "loop": false,
+      "hidden": true
     },
     "shocked_blink": {
       "type": "animation",
       "frames_dir": "animations/shocked_blink",
       "fps": 15,
-      "loop": false
+      "loop": false,
+      "hidden": true
     },
     "loading_spinner": {
       "type": "animation",

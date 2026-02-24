@@ -26,6 +26,7 @@ class Expression:
     loop: bool = True
     idle_animation: str | None = None
     next_expression: str | None = None
+    hidden: bool = False
 
 
 def load_expressions(expressions_dir: str | Path) -> dict[str, Expression]:
@@ -57,6 +58,7 @@ def load_expressions(expressions_dir: str | Path) -> dict[str, Expression]:
                 type=expr_type,
                 image=image,
                 idle_animation=data.get("idle_animation"),
+                hidden=data.get("hidden", False),
             )
         elif expr_type == ExpressionType.ANIMATION:
             frames_dir_name = data.get("frames_dir")
@@ -76,6 +78,7 @@ def load_expressions(expressions_dir: str | Path) -> dict[str, Expression]:
                 fps=data.get("fps", 12),
                 loop=data.get("loop", True),
                 next_expression=data.get("next"),
+                hidden=data.get("hidden", False),
             )
 
     logger.info("loaded %d expressions from %s", len(result), expressions_dir)

@@ -26,7 +26,9 @@ class ExpressionManager:
     ) -> None:
         self._display = display
         self._expressions = expressions
-        self._names = sorted(expressions.keys())
+        self._names = sorted(
+            name for name, expr in expressions.items() if not expr.hidden
+        )
         self.current_name: str | None = None
         self._animation = AnimationEngine(display)
         self._animation_task: asyncio.Task | None = None
