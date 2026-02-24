@@ -4,6 +4,19 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [v1.4.0] - 2026-02-25
+
+Phase 4 測試覆蓋率改善。
+
+### Added
+- E2E 整合測試：完整指令流程驗證（表情切換、效果套用、亮度調整、blink toggle）
+- WebSocket 訊息測試：連線、表情/效果/亮度/blink 指令、心跳、無效訊息處理
+- 邊界條件測試：Config 載入、亮度範圍驗證、空 Store、動畫引擎邊界值
+- 錯誤處理測試：無效 JSON、缺失檔案/type/frames_dir、無效表情類型、load_effects KeyError
+
+### Changed
+- 測試數量從 99 增加至 145（+46 個測試，涵蓋 18 個測試檔案）
+
 ## [v1.3.0] - 2026-02-25
 
 Phase 3 架構重構。
