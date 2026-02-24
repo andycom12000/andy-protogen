@@ -13,7 +13,7 @@ from protogen.generators import ProceduralGenerator, FrameEffect, GENERATORS
 logger = logging.getLogger(__name__)
 
 
-class RenderPipeline(DisplayBase):
+class RenderPipeline:
     """Display wrapper that tracks the last frame and composites effects.
 
     Sits between the expression system and the hardware display.
@@ -22,7 +22,8 @@ class RenderPipeline(DisplayBase):
     """
 
     def __init__(self, display: DisplayBase) -> None:
-        super().__init__(display.width, display.height)
+        self.width = display.width
+        self.height = display.height
         self._display = display
         self.last_frame: Image.Image | None = None
         self._effect: ProceduralGenerator | None = None
