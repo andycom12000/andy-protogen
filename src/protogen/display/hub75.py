@@ -25,15 +25,23 @@ class HUB75Display(DisplayBase):
         )
         self.brightness = 100
         self._brightness_lut = np.arange(256, dtype=np.uint8)
+        self.last_image: Image.Image | None = None
 
-    def show_image(self, image: Image.Image) -> None:
-        if image.mode != "RGB" or image.size != (self.width, self.height):
-            image = image.convert("RGB").resize((self.width, self.height))
-        arr = np.asarray(image, dtype=np.uint8)
+    def _refresh(self) -> None:
+        """Re-render the current image to the framebuffer."""
+        if self.last_image is None:
+            return
+        arr = np.asarray(self.last_image, dtype=np.uint8)
         if self.brightness < 100:
             arr = self._brightness_lut[arr]
         self._framebuffer[:] = arr
         self._matrix.show()
+
+    def show_image(self, image: Image.Image) -> None:
+        if image.mode != "RGB" or image.size != (self.width, self.height):
+            image = image.convert("RGB").resize((self.width, self.height))
+        self.last_image = image
+        self._refresh()
 
     def clear(self) -> None:
         self._framebuffer[:] = 0
@@ -45,3 +53,4 @@ class HUB75Display(DisplayBase):
             [min(255, i * self.brightness // 100) for i in range(256)],
             dtype=np.uint8,
         )
+        self._refresh()
