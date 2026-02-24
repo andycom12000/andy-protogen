@@ -1,13 +1,13 @@
 from __future__ import annotations
 
 import asyncio
-from typing import Protocol
+from typing import Awaitable, Callable, Protocol
 
 from protogen.commands import Command
 
 
 class InputSource(Protocol):
-    async def run(self, put: asyncio.coroutines) -> None: ...
+    async def run(self, put: Callable[[Command], Awaitable[None]]) -> None: ...
 
 
 class InputManager:
