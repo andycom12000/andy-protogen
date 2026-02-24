@@ -11,6 +11,7 @@ from protogen.commands import InputEvent
 from protogen.config import Config
 from protogen.expression import load_expressions, load_effects
 from protogen.expression_manager import ExpressionManager
+from protogen.expression_store import ExpressionStore
 from protogen.input_manager import InputManager
 from protogen.boot_animation import play_boot_animation
 from protogen.generators import register_generators, GENERATORS, FrameEffect
@@ -51,10 +52,11 @@ async def async_main() -> None:
     display.set_brightness(config.display.brightness)
 
     expressions = load_expressions(config.expressions_dir)
+    store = ExpressionStore(expressions)
     effects = load_effects(config.expressions_dir)
     pipeline = RenderPipeline(display)
     expr_mgr = ExpressionManager(
-        pipeline, expressions,
+        pipeline, store,
         blink_interval_min=config.blink_interval_min,
         blink_interval_max=config.blink_interval_max,
         transition_duration_ms=config.transition_duration_ms,

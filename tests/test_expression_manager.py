@@ -6,12 +6,13 @@ from PIL import Image
 
 from protogen.expression import Expression, ExpressionType
 from protogen.expression_manager import ExpressionManager
+from protogen.expression_store import ExpressionStore
 from protogen.render_pipeline import RenderPipeline
 
 
 @pytest.fixture
-def sample_expressions():
-    return {
+def sample_store():
+    return ExpressionStore({
         "happy": Expression(
             name="happy", type=ExpressionType.STATIC,
             image=Image.new("RGB", (128, 32), (0, 255, 0)),
@@ -20,18 +21,18 @@ def sample_expressions():
             name="sad", type=ExpressionType.STATIC,
             image=Image.new("RGB", (128, 32), (0, 0, 255)),
         ),
-    }
+    })
 
 
-def test_set_expression(mock_display, sample_expressions):
-    mgr = ExpressionManager(mock_display, sample_expressions)
+def test_set_expression(mock_display, sample_store):
+    mgr = ExpressionManager(mock_display, sample_store)
     mgr.set_expression("happy")
     assert mgr.current_name == "happy"
     assert mock_display.last_image is not None
 
 
-def test_expression_list(mock_display, sample_expressions):
-    mgr = ExpressionManager(mock_display, sample_expressions)
+def test_expression_list(mock_display, sample_store):
+    mgr = ExpressionManager(mock_display, sample_store)
     assert mgr.expression_names == ["happy", "sad"]
 
 
@@ -39,7 +40,7 @@ def test_expression_list(mock_display, sample_expressions):
 async def test_blink_uses_configured_interval(mock_display):
     """Verify _blink_loop uses blink_interval_min/max, not hardcoded values."""
     blink_frames = [Image.new("RGB", (128, 32), (255, 255, 255))]
-    expressions = {
+    store = ExpressionStore({
         "happy": Expression(
             name="happy", type=ExpressionType.STATIC,
             image=Image.new("RGB", (128, 32), (0, 255, 0)),
@@ -49,9 +50,9 @@ async def test_blink_uses_configured_interval(mock_display):
             name="blink", type=ExpressionType.ANIMATION,
             frames=blink_frames, fps=60, loop=False,
         ),
-    }
+    })
     mgr = ExpressionManager(
-        mock_display, expressions,
+        mock_display, store,
         blink_interval_min=0.01, blink_interval_max=0.02,
     )
     mgr.set_expression("happy")
@@ -72,15 +73,15 @@ async def test_transition_cross_fade(mock_display):
     pipeline = RenderPipeline(mock_display)
     red_img = Image.new("RGB", (128, 32), (255, 0, 0))
     blue_img = Image.new("RGB", (128, 32), (0, 0, 255))
-    expressions = {
+    store = ExpressionStore({
         "red": Expression(
             name="red", type=ExpressionType.STATIC, image=red_img,
         ),
         "blue": Expression(
             name="blue", type=ExpressionType.STATIC, image=blue_img,
         ),
-    }
-    mgr = ExpressionManager(pipeline, expressions, transition_duration_ms=100)
+    })
+    mgr = ExpressionManager(pipeline, store, transition_duration_ms=100)
     mgr.set_expression("red")
 
     # Now switch — should trigger a cross-fade
@@ -98,7 +99,7 @@ async def test_transition_cross_fade(mock_display):
 async def test_transition_skipped_when_zero(mock_display):
     """With transition_duration_ms=0, expression switches immediately."""
     pipeline = RenderPipeline(mock_display)
-    expressions = {
+    store = ExpressionStore({
         "a": Expression(
             name="a", type=ExpressionType.STATIC,
             image=Image.new("RGB", (128, 32), (255, 0, 0)),
@@ -107,8 +108,8 @@ async def test_transition_skipped_when_zero(mock_display):
             name="b", type=ExpressionType.STATIC,
             image=Image.new("RGB", (128, 32), (0, 255, 0)),
         ),
-    }
-    mgr = ExpressionManager(pipeline, expressions, transition_duration_ms=0)
+    })
+    mgr = ExpressionManager(pipeline, store, transition_duration_ms=0)
     mgr.set_expression("a")
     mgr.set_expression("b")
 
@@ -121,13 +122,13 @@ async def test_transition_skipped_when_zero(mock_display):
 async def test_transition_skipped_on_first_expression(mock_display):
     """First expression set has no old frame, so no transition."""
     pipeline = RenderPipeline(mock_display)
-    expressions = {
+    store = ExpressionStore({
         "a": Expression(
             name="a", type=ExpressionType.STATIC,
             image=Image.new("RGB", (128, 32), (255, 0, 0)),
         ),
-    }
-    mgr = ExpressionManager(pipeline, expressions, transition_duration_ms=200)
+    })
+    mgr = ExpressionManager(pipeline, store, transition_duration_ms=200)
     mgr.set_expression("a")
 
     # Should display immediately (no old frame to transition from)
@@ -135,9 +136,9 @@ async def test_transition_skipped_on_first_expression(mock_display):
     assert pixel == (255, 0, 0)
 
 
-def test_get_thumbnail_static(mock_display, sample_expressions):
+def test_get_thumbnail_static(mock_display, sample_store):
     """get_thumbnail returns PNG bytes for a static expression."""
-    mgr = ExpressionManager(mock_display, sample_expressions)
+    mgr = ExpressionManager(mock_display, sample_store)
     data = mgr.get_thumbnail("happy")
     assert data is not None
     assert isinstance(data, bytes)
@@ -151,13 +152,13 @@ def test_get_thumbnail_animation(mock_display):
         Image.new("RGB", (128, 32), (255, 0, 0)),
         Image.new("RGB", (128, 32), (0, 255, 0)),
     ]
-    expressions = {
+    store = ExpressionStore({
         "anim": Expression(
             name="anim", type=ExpressionType.ANIMATION,
             frames=frames, fps=12, loop=True,
         ),
-    }
-    mgr = ExpressionManager(mock_display, expressions)
+    })
+    mgr = ExpressionManager(mock_display, store)
     data = mgr.get_thumbnail("anim")
     assert data is not None
     # Decode and check it's the first frame (red)
@@ -165,7 +166,7 @@ def test_get_thumbnail_animation(mock_display):
     assert img.getpixel((0, 0)) == (255, 0, 0)
 
 
-def test_get_thumbnail_nonexistent(mock_display, sample_expressions):
+def test_get_thumbnail_nonexistent(mock_display, sample_store):
     """get_thumbnail returns None for unknown expression."""
-    mgr = ExpressionManager(mock_display, sample_expressions)
+    mgr = ExpressionManager(mock_display, sample_store)
     assert mgr.get_thumbnail("nonexistent") is None
