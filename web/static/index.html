@@ -233,8 +233,8 @@
 
         .toggle-switch {
             position: relative;
-            width: 52px;
-            height: 28px;
+            width: 60px;
+            height: 34px;
             flex-shrink: 0;
         }
 
@@ -249,7 +249,7 @@
             inset: 0;
             background: var(--bg-primary);
             border: 1px solid var(--border);
-            border-radius: 14px;
+            border-radius: 17px;
             cursor: pointer;
             transition: all 0.3s ease;
         }
@@ -257,10 +257,10 @@
         .toggle-slider::before {
             content: '';
             position: absolute;
-            top: 3px;
-            left: 3px;
-            width: 20px;
-            height: 20px;
+            top: 4px;
+            left: 4px;
+            width: 24px;
+            height: 24px;
             background: var(--text-muted);
             border-radius: 50%;
             transition: all 0.3s ease;
@@ -272,7 +272,7 @@
         }
 
         .toggle-switch input:checked + .toggle-slider::before {
-            transform: translateX(24px);
+            transform: translateX(26px);
             background: var(--accent);
             box-shadow: 0 0 10px var(--accent-glow);
         }
@@ -505,6 +505,24 @@
             color: var(--accent);
         }
 
+        .scrolling-text-input {
+            margin-top: 14px;
+            padding-top: 14px;
+            border-top: 1px solid var(--border);
+        }
+
+        .param-badge {
+            position: absolute;
+            top: 4px;
+            right: 6px;
+            font-size: 0.7rem;
+            opacity: 0.4;
+            pointer-events: none;
+        }
+        .expressions button.active .param-badge, .effects-grid button.active .param-badge {
+            opacity: 0.8;
+        }
+
         /* 寬螢幕響應式 */
         @media (min-width: 600px) {
             .container { max-width: 640px; }
@@ -549,35 +567,30 @@
             <div class="card-label">Effects</div>
             <div class="effects-grid" id="effects"></div>
             <div class="effect-params" id="effectParams" style="display:none"></div>
-        </div>
-
-        <div class="card">
-            <div class="card-label">Scrolling Text</div>
-            <div class="text-input-row">
-                <input type="text" id="textInput" placeholder="Enter text..." maxlength="100">
-                <button type="button" id="textSend">Send</button>
+            <div class="scrolling-text-input" id="scrollingTextSection" style="display:none">
+                <div class="text-input-row">
+                    <input type="text" id="textInput" placeholder="Enter text..." maxlength="100">
+                    <button type="button" id="textSend">Send</button>
+                </div>
             </div>
         </div>
 
         <div class="card">
-            <div class="card-label">Auto Blink</div>
-            <div class="toggle-row">
-                <span class="toggle-label">Periodic blink</span>
-                <label class="toggle-switch">
-                    <input type="checkbox" id="blinkToggle" aria-label="Toggle auto blink">
-                    <span class="toggle-slider"></span>
-                </label>
-            </div>
-        </div>
-
-        <div class="card">
-            <div class="card-label">Brightness</div>
+            <div class="card-label">Controls</div>
             <div class="brightness-control">
                 <div class="brightness-header">
                     <span class="brightness-value" id="bval">80%</span>
                 </div>
                 <input type="range" min="0" max="100" value="80" id="brightness"
                        aria-label="Brightness">
+            </div>
+            <div style="border-top: 1px solid var(--border); margin: 14px 0;"></div>
+            <div class="toggle-row">
+                <span class="toggle-label">Auto Blink</span>
+                <label class="toggle-switch">
+                    <input type="checkbox" id="blinkToggle" aria-label="Toggle auto blink">
+                    <span class="toggle-slider"></span>
+                </label>
             </div>
         </div>
 
@@ -625,6 +638,9 @@
         const blinkToggleEl = document.getElementById('blinkToggle');
         const textInputEl = document.getElementById('textInput');
         const textSendEl = document.getElementById('textSend');
+        const scrollingTextSection = document.getElementById('scrollingTextSection');
+        /* Haptic feedback helper */
+        function haptic() { try { navigator.vibrate(15); } catch(_) {} }
         /* Friendly display name: "loading_bar" -> "Loading Bar" */
         function displayName(id) {
             return id.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
@@ -740,6 +756,7 @@
             } else {
                 hideEffectParams();
             }
+            scrollingTextSection.style.display = (name === 'scrolling_text') ? '' : 'none';
         }
 
         brightnessEl.addEventListener('input', () => {
@@ -794,6 +811,7 @@
                     btn.dataset.expr = name;
                     btn.setAttribute('type', 'button');
                     btn.onclick = () => {
+                        haptic();
                         setActiveExpression(name);
                         send({ action: 'set', name });
                     };
@@ -829,6 +847,7 @@
                 noneBtn.setAttribute('type', 'button');
                 noneBtn.dataset.effect = '__none__';
                 noneBtn.onclick = () => {
+                    haptic();
                     send({ action: 'clear_effect' });
                     setActiveEffect(null);
                 };
@@ -844,9 +863,16 @@
                     const label = document.createElement('span');
                     label.textContent = displayName(name);
                     btn.appendChild(label);
+                    if (EFFECT_PARAMS[name]) {
+                        const badge = document.createElement('span');
+                        badge.className = 'param-badge';
+                        badge.textContent = '\u2699';
+                        btn.appendChild(badge);
+                    }
                     btn.dataset.effect = name;
                     btn.setAttribute('type', 'button');
                     btn.onclick = () => {
+                        haptic();
                         send({ action: 'set_effect', name });
                         setActiveEffect(name);
                     };
@@ -916,12 +942,20 @@
             try {
                 const res = await fetch('/api/system/status');
                 const d = await res.json();
-                document.getElementById('sysCpuTemp').textContent = valOrNA(d.cpu_temp, '\u00B0C');
-                document.getElementById('sysCpuUsage').textContent = valOrNA(d.cpu_usage, '%');
-                document.getElementById('sysMemory').textContent = valOrNA(d.memory_used, '%');
-                document.getElementById('sysUptime').textContent = formatUptime(d.uptime);
-                document.getElementById('sysWifi').textContent = valOrNA(d.wifi_signal, ' dBm');
-                document.getElementById('sysFps').textContent = valOrNA(d.display_fps, ' fps');
+                const items = [
+                    ['sysCpuTemp', valOrNA(d.cpu_temp, '\u00B0C')],
+                    ['sysCpuUsage', valOrNA(d.cpu_usage, '%')],
+                    ['sysMemory', valOrNA(d.memory_used, '%')],
+                    ['sysUptime', formatUptime(d.uptime)],
+                    ['sysWifi', valOrNA(d.wifi_signal, ' dBm')],
+                    ['sysFps', valOrNA(d.display_fps, ' fps')],
+                ];
+                items.forEach(([id, val]) => {
+                    const el = document.getElementById(id);
+                    el.textContent = val;
+                    const parent = el.closest('.status-item');
+                    if (parent) parent.style.display = (val === 'N/A') ? 'none' : '';
+                });
             } catch (_) {}
         }
 
