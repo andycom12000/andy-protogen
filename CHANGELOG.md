@@ -4,6 +4,25 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [v2.1.0] - 2026-02-25
+
+效能最佳化與前端體驗強化。
+
+### Added
+- MJPEG 即時串流預覽端點 (`/api/preview/stream`)，取代 canvas 輪詢方式
+- JPEG 幀快取機制（`RenderPipeline.get_jpeg()`），使用 `id(frame)` 偵測變更避免重複編碼
+- numpy base array 快取，靜態表情幀在合成時不重複轉換
+- 離線狀態 UI（`body.offline` CSS class），WebSocket 斷線時視覺回饋
+- 縮圖載入失敗時的 SVG placeholder fallback
+- MJPEG 串流自動重連機制（2 秒重試 + cache-bust）
+- 效能與前端強化設計文件及實作計畫
+
+### Changed
+- 前端預覽從 canvas + 5fps HTTP 輪詢改為 MJPEG `<img>` 串流（10fps）
+- `/api/preview` 端點從 server-side JPEG 編碼改為使用快取的 JPEG bytes
+- `WebInput` 介面從 `get_last_frame` 改為 `get_jpeg` callback
+- 測試數量從 145 增加至 159（+14 個測試）
+
 ## [v1.4.0] - 2026-02-25
 
 Phase 4 測試覆蓋率改善。
