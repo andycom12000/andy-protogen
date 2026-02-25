@@ -202,6 +202,9 @@ def test_update_effect_params_endpoint(web_app):
 def test_preview_returns_jpeg():
     """Preview endpoint returns JPEG when a frame is available."""
     frame = Image.new("RGB", (128, 32), (255, 0, 0))
+    buf = io.BytesIO()
+    frame.save(buf, format="JPEG", quality=60)
+    jpeg_bytes = buf.getvalue()
     commands = []
 
     async def put(cmd: Command) -> None:
@@ -214,19 +217,18 @@ def test_preview_returns_jpeg():
         get_current_expression=lambda: "happy",
         get_brightness=lambda: 100,
         get_display_fps=lambda: 30.0,
-        get_last_frame=lambda: frame,
+        get_jpeg=lambda quality=60: jpeg_bytes,
     )
     client = TestClient(app)
     response = client.get("/api/preview")
     assert response.status_code == 200
     assert response.headers["content-type"] == "image/jpeg"
     assert response.headers["cache-control"] == "no-store"
-    # JPEG magic bytes
     assert response.content[:2] == b'\xff\xd8'
 
 
 def test_preview_no_frame_returns_204():
-    """Preview endpoint returns 204 when get_last_frame returns None."""
+    """Preview endpoint returns 204 when get_jpeg returns None."""
     commands = []
 
     async def put(cmd: Command) -> None:
@@ -239,7 +241,7 @@ def test_preview_no_frame_returns_204():
         get_current_expression=lambda: "happy",
         get_brightness=lambda: 100,
         get_display_fps=lambda: 30.0,
-        get_last_frame=lambda: None,
+        get_jpeg=lambda quality=60: None,
     )
     client = TestClient(app)
     response = client.get("/api/preview")
@@ -247,8 +249,73 @@ def test_preview_no_frame_returns_204():
 
 
 def test_preview_no_callback_returns_204(web_app):
-    """Preview endpoint returns 204 when get_last_frame callback is not provided."""
+    """Preview endpoint returns 204 when get_jpeg callback is not provided."""
     app, _, _ = web_app
     client = TestClient(app)
     response = client.get("/api/preview")
+    assert response.status_code == 204
+
+
+def test_preview_stream_returns_mjpeg():
+    """Preview stream endpoint returns multipart MJPEG content."""
+    frame = Image.new("RGB", (128, 32), (255, 0, 0))
+    buf = io.BytesIO()
+    frame.save(buf, format="JPEG", quality=60)
+    jpeg_bytes = buf.getvalue()
+    call_count = [0]
+
+    class _StopStream(Exception):
+        """Raised to terminate the infinite stream in tests."""
+
+    def get_jpeg(quality=60):
+        call_count[0] += 1
+        if call_count[0] > 2:
+            raise _StopStream
+        return jpeg_bytes
+
+    commands = []
+
+    async def put(cmd: Command) -> None:
+        commands.append(cmd)
+
+    app = _create_app(
+        expression_names=["happy"],
+        put=put,
+        get_blink_state=lambda: False,
+        get_current_expression=lambda: "happy",
+        get_brightness=lambda: 100,
+        get_display_fps=lambda: 30.0,
+        get_jpeg=get_jpeg,
+    )
+    # The MJPEG generator is infinite; raise_server_exceptions=False
+    # lets the test terminate when get_jpeg raises _StopStream.
+    client = TestClient(app, raise_server_exceptions=False)
+    with client.stream("GET", "/api/preview/stream") as response:
+        assert response.status_code == 200
+        content_type = response.headers["content-type"]
+        assert "multipart/x-mixed-replace" in content_type
+        response.read()
+    # get_jpeg was called, confirming the generator invoked it
+    assert call_count[0] > 0
+    # Verify JPEG bytes are well-formed (would be in the stream)
+    assert jpeg_bytes[:2] == b"\xff\xd8"
+
+
+def test_preview_stream_no_jpeg_returns_204():
+    """Preview stream returns 204 when get_jpeg is not provided."""
+    commands = []
+
+    async def put(cmd: Command) -> None:
+        commands.append(cmd)
+
+    app = _create_app(
+        expression_names=["happy"],
+        put=put,
+        get_blink_state=lambda: False,
+        get_current_expression=lambda: "happy",
+        get_brightness=lambda: 100,
+        get_display_fps=lambda: 30.0,
+    )
+    client = TestClient(app)
+    response = client.get("/api/preview/stream")
     assert response.status_code == 204

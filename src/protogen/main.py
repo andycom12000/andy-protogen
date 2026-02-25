@@ -96,7 +96,7 @@ async def async_main() -> None:
             get_effect_thumbnail=make_effect_thumbnail,
             get_display_fps=lambda: pipeline.get_fps(),
             system_monitor=system_monitor,
-            get_last_frame=lambda: pipeline.last_displayed_frame,
+            get_jpeg=pipeline.get_jpeg,
         ))
 
     # 播放開機動畫
