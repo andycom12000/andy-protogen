@@ -138,8 +138,10 @@
 
         .preview-card img {
             width: 100%;
+            height: auto;
             image-rendering: pixelated;
-            aspect-ratio: 2 / 1;
+            aspect-ratio: 4 / 1;
+            object-fit: fill;
             border-radius: 4px;
             display: block;
         }
@@ -596,7 +598,7 @@
         </div>
 
         <div class="card preview-card">
-            <img id="preview" src="/api/preview/stream" alt="Live preview" width="128" height="32">
+            <img id="preview" src="/api/preview/stream" alt="Live preview" width="128" height="64">
         </div>
 
         <div class="card">
