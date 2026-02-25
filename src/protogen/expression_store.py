@@ -15,9 +15,14 @@ class ExpressionStore:
 
     def __init__(self, expressions: dict[str, Expression]) -> None:
         self._expressions = expressions
-        self._names = sorted(
+        visible = sorted(
             name for name, expr in expressions.items() if not expr.hidden
         )
+        # Put "default" first if it exists
+        if "default" in visible:
+            visible.remove("default")
+            visible.insert(0, "default")
+        self._names = visible
 
     @property
     def names(self) -> list[str]:
