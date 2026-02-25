@@ -324,6 +324,12 @@
             align-items: baseline;
         }
 
+        .brightness-label {
+            font-family: 'Fira Code', monospace;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+
         .brightness-value {
             font-family: 'Fira Code', monospace;
             font-size: 1.1rem;
@@ -445,7 +451,8 @@
             text-transform: uppercase;
             letter-spacing: 0.1em;
             color: var(--text-muted);
-            margin-bottom: 0;
+            margin: -20px;
+            padding: 20px;
             cursor: pointer;
             display: flex;
             align-items: center;
@@ -464,7 +471,7 @@
         }
 
         .card-label-toggle.expanded {
-            margin-bottom: 14px;
+            margin-bottom: 0;
         }
 
         .status-grid {
@@ -607,33 +614,44 @@
         </div>
 
         <div class="card">
-            <div class="card-label">Effects</div>
-            <div class="effects-grid" id="effects"></div>
-            <div class="effect-params" id="effectParams" style="display:none"></div>
-            <div class="scrolling-text-input" id="scrollingTextSection" style="display:none">
-                <div class="text-input-row">
-                    <input type="text" id="textInput" placeholder="Enter text..." maxlength="100">
-                    <button type="button" id="textSend">Send</button>
+            <div class="card-label-toggle" id="effectsToggle">
+                <span>Effects</span>
+                <span class="chevron">&#9660;</span>
+            </div>
+            <div id="effectsContent" style="display:none">
+                <div class="effects-grid" id="effects"></div>
+                <div class="effect-params" id="effectParams" style="display:none"></div>
+                <div class="scrolling-text-input" id="scrollingTextSection" style="display:none">
+                    <div class="text-input-row">
+                        <input type="text" id="textInput" placeholder="Enter text..." maxlength="100">
+                        <button type="button" id="textSend">Send</button>
+                    </div>
                 </div>
             </div>
         </div>
 
         <div class="card">
-            <div class="card-label">Controls</div>
-            <div class="brightness-control">
-                <div class="brightness-header">
-                    <span class="brightness-value" id="bval">80%</span>
-                </div>
-                <input type="range" min="0" max="100" value="80" id="brightness"
-                       aria-label="Brightness">
+            <div class="card-label-toggle" id="controlsToggle">
+                <span>Controls</span>
+                <span class="chevron">&#9660;</span>
             </div>
-            <div class="card-divider"></div>
-            <div class="toggle-row">
-                <span class="toggle-label">Auto Blink</span>
-                <label class="toggle-switch">
-                    <input type="checkbox" id="blinkToggle" aria-label="Toggle auto blink">
-                    <span class="toggle-slider"></span>
-                </label>
+            <div id="controlsContent" style="display:none">
+                <div class="brightness-control">
+                    <div class="brightness-header">
+                        <span class="brightness-label">Brightness</span>
+                        <span class="brightness-value" id="bval">80%</span>
+                    </div>
+                    <input type="range" min="0" max="100" value="80" id="brightness"
+                           aria-label="Brightness">
+                </div>
+                <div class="card-divider"></div>
+                <div class="toggle-row">
+                    <span class="toggle-label">Auto Blink</span>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="blinkToggle" aria-label="Toggle auto blink">
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
             </div>
         </div>
 
@@ -957,29 +975,40 @@
             }
         }
 
-        /* System status panel */
-        const sysToggle = document.getElementById('sysStatusToggle');
-        const sysGrid = document.getElementById('sysStatus');
-        let sysStatusOpen = false;
-        let sysStatusTimer = null;
-
-        sysToggle.addEventListener('click', () => {
-            sysStatusOpen = !sysStatusOpen;
-            saveLocal('sysStatusOpen', sysStatusOpen);
-            sysGrid.style.display = sysStatusOpen ? '' : 'none';
-            sysToggle.classList.toggle('expanded', sysStatusOpen);
-            if (sysStatusOpen) {
-                fetchSystemStatus();
-                sysStatusTimer = setInterval(fetchSystemStatus, 2000);
-            } else if (sysStatusTimer) {
-                clearInterval(sysStatusTimer);
-                sysStatusTimer = null;
+        /* Collapsible panel helper */
+        function setupToggle(toggleId, contentId, storageKey, onOpen, onClose) {
+            const toggle = document.getElementById(toggleId);
+            const content = document.getElementById(contentId);
+            let open = loadLocal(storageKey, false);
+            if (open) {
+                content.style.display = '';
+                toggle.classList.add('expanded');
+                if (onOpen) onOpen();
             }
-        });
-
-        if (loadLocal('sysStatusOpen', false)) {
-            sysToggle.click();
+            toggle.addEventListener('click', () => {
+                open = !open;
+                saveLocal(storageKey, open);
+                content.style.display = open ? '' : 'none';
+                toggle.classList.toggle('expanded', open);
+                if (open && onOpen) onOpen();
+                if (!open && onClose) onClose();
+            });
         }
+
+        /* Effects panel */
+        setupToggle('effectsToggle', 'effectsContent', 'effectsOpen');
+
+        /* Controls panel */
+        setupToggle('controlsToggle', 'controlsContent', 'controlsOpen');
+
+        /* System status panel */
+        let sysStatusTimer = null;
+        setupToggle('sysStatusToggle', 'sysStatus', 'sysStatusOpen', () => {
+            fetchSystemStatus();
+            sysStatusTimer = setInterval(fetchSystemStatus, 2000);
+        }, () => {
+            if (sysStatusTimer) { clearInterval(sysStatusTimer); sysStatusTimer = null; }
+        });
 
         function formatUptime(seconds) {
             if (seconds == null) return 'N/A';
