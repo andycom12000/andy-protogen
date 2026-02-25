@@ -45,6 +45,9 @@ class RenderPipeline:
         # JPEG cache for preview endpoints
         self._jpeg_cache: bytes | None = None
         self._jpeg_frame_id: int | None = None
+        # Cached numpy array for base frame in compositing
+        self._base_arr: np.ndarray | None = None
+        self._last_base_arr_id: int | None = None
 
     @property
     def active_effect_name(self) -> str | None:
@@ -59,6 +62,7 @@ class RenderPipeline:
         self._effect_fps = fps
         self._effect_frame = None
         self._last_base_id = None
+        self._last_base_arr_id = None
         self._last_composited_bytes = None
         self._effect_active.set()
         logger.info("effect set: %s (fps=%d)", name, fps)
@@ -76,6 +80,7 @@ class RenderPipeline:
         self._effect_name = None
         self._effect_frame = None
         self._last_base_id = None
+        self._last_base_arr_id = None
         self._last_composited_bytes = None
         self._effect_active.clear()
         # Re-display pure expression frame (bypass dedup since effect was cleared)
@@ -116,10 +121,13 @@ class RenderPipeline:
         base = self.last_frame
         if base is None:
             base = self._black_frame
-        # NumPy pixel-wise max instead of ImageChops.lighter
-        base_arr = np.asarray(base)
+        # Cache base array conversion — only recompute when base frame changes
+        base_id = id(base)
+        if base_id != self._last_base_arr_id:
+            self._base_arr = np.asarray(base)
+            self._last_base_arr_id = base_id
         effect_arr = np.asarray(self._effect_frame)
-        composited_arr = np.maximum(base_arr, effect_arr)
+        composited_arr = np.maximum(self._base_arr, effect_arr)
         # Skip pushing if composited result is identical to last push
         composited_bytes = composited_arr.tobytes()
         if composited_bytes == self._last_composited_bytes:
@@ -175,6 +183,8 @@ class RenderPipeline:
         self._last_composited_bytes = None
         self._jpeg_cache = None
         self._jpeg_frame_id = None
+        self._base_arr = None
+        self._last_base_arr_id = None
         self._display.clear()
 
     def set_brightness(self, value: int) -> None:

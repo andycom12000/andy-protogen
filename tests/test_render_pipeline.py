@@ -307,3 +307,26 @@ def test_get_jpeg_re_encodes_on_new_frame():
     pipeline.show_image(Image.new("RGB", (128, 32), (0, 0, 255)))
     second = pipeline.get_jpeg()
     assert first is not second
+
+
+def test_base_array_cached_across_composites():
+    """_push_composited caches base array when base frame doesn't change."""
+    display = MockDisplay(width=128, height=32)
+    pipeline = RenderPipeline(display)
+
+    base = Image.new("RGB", (128, 32), (50, 50, 50))
+    pipeline.show_image(base)
+    pipeline.set_effect("matrix_rain", {})
+
+    # First composite
+    pipeline._effect_frame = Image.new("RGB", (128, 32), (0, 100, 0))
+    pipeline._push_composited()
+    first_arr = pipeline._base_arr
+
+    # Second composite with same base, different effect frame
+    pipeline._effect_frame = Image.new("RGB", (128, 32), (0, 200, 0))
+    pipeline._last_composited_bytes = None  # force push
+    pipeline._push_composited()
+    second_arr = pipeline._base_arr
+
+    assert first_arr is second_arr  # same cached array object
