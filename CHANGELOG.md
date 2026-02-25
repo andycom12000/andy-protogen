@@ -4,6 +4,19 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [v2.1.2] - 2026-02-25
+
+Web UI 折疊面板與標籤修正。
+
+### Added
+- Effects、Controls 區塊改為可折疊（與 System Status 相同互動模式）
+- 折疊狀態透過 localStorage 持久化
+- 通用 `setupToggle()` 函式取代重複的折疊邏輯
+
+### Fixed
+- 補回 Controls 區塊中遺失的 "Brightness" 文字標籤
+- 折疊 toggle 點擊區域從僅文字擴大至整條 bar
+
 ## [v2.1.1] - 2026-02-25
 
 Web UI 修正。
