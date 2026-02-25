@@ -26,6 +26,7 @@ class RenderPipeline:
         self.height = display.height
         self._display = display
         self.last_frame: Image.Image | None = None
+        self.last_displayed_frame: Image.Image | None = None
         self._effect: ProceduralGenerator | None = None
         self._effect_name: str | None = None
         self._effect_fps: int = 20
@@ -76,6 +77,7 @@ class RenderPipeline:
         # Re-display pure expression frame (bypass dedup since effect was cleared)
         if self.last_frame is not None:
             self._last_pushed_id = id(self.last_frame)
+            self.last_displayed_frame = self.last_frame
             self._display.show_image(self.last_frame)
 
     def set_effect_text(self, text: str) -> None:
@@ -104,6 +106,7 @@ class RenderPipeline:
         if self._effect_frame is None:
             return
         if isinstance(self._effect, FrameEffect):
+            self.last_displayed_frame = self._effect_frame
             self._display.show_image(self._effect_frame)
             return
         base = self.last_frame
@@ -118,7 +121,9 @@ class RenderPipeline:
         if composited_bytes == self._last_composited_bytes:
             return
         self._last_composited_bytes = composited_bytes
-        self._display.show_image(Image.fromarray(composited_arr, "RGB"))
+        composited_image = Image.fromarray(composited_arr, "RGB")
+        self.last_displayed_frame = composited_image
+        self._display.show_image(composited_image)
 
     def get_fps(self) -> float:
         if self._ema_interval <= 0:
@@ -143,10 +148,12 @@ class RenderPipeline:
             if frame_id == self._last_pushed_id:
                 return
             self._last_pushed_id = frame_id
+            self.last_displayed_frame = image
             self._display.show_image(image)
 
     def clear(self) -> None:
         self.last_frame = None
+        self.last_displayed_frame = None
         self._last_pushed_id = None
         self._last_composited_bytes = None
         self._display.clear()

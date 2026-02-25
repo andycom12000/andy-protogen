@@ -1,8 +1,11 @@
 from __future__ import annotations
 
+import io
 import logging
 from pathlib import Path
 from typing import Callable, Awaitable
+
+from PIL import Image
 
 from fastapi import FastAPI, WebSocket
 from fastapi.responses import FileResponse, Response
@@ -25,6 +28,7 @@ def _create_app(
     get_effect_thumbnail: Callable[[str], bytes | None] | None = None,
     get_display_fps: Callable[[], float] | None = None,
     system_monitor: SystemMonitor | None = None,
+    get_last_frame: Callable[[], Image.Image | None] | None = None,
 ):
 
     app = FastAPI()
@@ -128,6 +132,21 @@ def _create_app(
             "active_effect": _get_active_effect(),
         }
 
+    @app.get("/api/preview")
+    async def preview():
+        if get_last_frame is None:
+            return Response(status_code=204)
+        frame = get_last_frame()
+        if frame is None:
+            return Response(status_code=204)
+        buf = io.BytesIO()
+        frame.save(buf, format="JPEG", quality=60)
+        return Response(
+            content=buf.getvalue(),
+            media_type="image/jpeg",
+            headers={"Cache-Control": "no-store"},
+        )
+
     @app.websocket("/ws")
     async def websocket_endpoint(ws: WebSocket):
         await ws.accept()
@@ -178,6 +197,7 @@ class WebInput:
         get_effect_thumbnail: Callable[[str], bytes | None] | None = None,
         get_display_fps: Callable[[], float] | None = None,
         system_monitor: SystemMonitor | None = None,
+        get_last_frame: Callable[[], Image.Image | None] | None = None,
     ) -> None:
         self._port = port
         self._expression_names = expression_names or []
@@ -190,6 +210,7 @@ class WebInput:
         self._get_effect_thumbnail = get_effect_thumbnail
         self._get_display_fps = get_display_fps or (lambda: 0.0)
         self._system_monitor = system_monitor
+        self._get_last_frame = get_last_frame
 
     async def run(self, put: Callable[[Command], Awaitable[None]]) -> None:
         import uvicorn
@@ -203,6 +224,7 @@ class WebInput:
             get_effect_thumbnail=self._get_effect_thumbnail,
             get_display_fps=self._get_display_fps,
             system_monitor=self._system_monitor,
+            get_last_frame=self._get_last_frame,
         )
         config = uvicorn.Config(app, host="0.0.0.0", port=self._port, log_level="info", ws="wsproto", loop="none")
         server = uvicorn.Server(config)
