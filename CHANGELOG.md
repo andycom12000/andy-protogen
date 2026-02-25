@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [v2.1.1] - 2026-02-25
+
+Web UI 修正。
+
+### Fixed
+- Default 表情排序至 UI 最前面（原本依字母排序卡在中間）
+- 預覽窗格 `aspect-ratio` 被 HTML `height` 屬性覆蓋，導致高度只有 64px；加入 `height: auto` + `object-fit: fill` 修正
+
 ## [v2.1.0] - 2026-02-25
 
 效能最佳化與前端體驗強化。
