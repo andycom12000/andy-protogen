@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import io
 import logging
 import time
 
@@ -41,6 +42,9 @@ class RenderPipeline:
         self._last_composited_bytes: bytes | None = None
         # Effect loop sleep: wait instead of polling when no effect active
         self._effect_active = asyncio.Event()
+        # JPEG cache for preview endpoints
+        self._jpeg_cache: bytes | None = None
+        self._jpeg_frame_id: int | None = None
 
     @property
     def active_effect_name(self) -> str | None:
@@ -130,6 +134,19 @@ class RenderPipeline:
             return 0.0
         return 1.0 / self._ema_interval
 
+    def get_jpeg(self, quality: int = 60) -> bytes | None:
+        """Return JPEG bytes of last_displayed_frame, cached until frame changes."""
+        frame = self.last_displayed_frame
+        if frame is None:
+            return None
+        fid = id(frame)
+        if fid != self._jpeg_frame_id:
+            buf = io.BytesIO()
+            frame.save(buf, format="JPEG", quality=quality)
+            self._jpeg_cache = buf.getvalue()
+            self._jpeg_frame_id = fid
+        return self._jpeg_cache
+
     def show_image(self, image: Image.Image) -> None:
         now = time.monotonic()
         if self._last_frame_time > 0:
@@ -156,6 +173,8 @@ class RenderPipeline:
         self.last_displayed_frame = None
         self._last_pushed_id = None
         self._last_composited_bytes = None
+        self._jpeg_cache = None
+        self._jpeg_frame_id = None
         self._display.clear()
 
     def set_brightness(self, value: int) -> None:

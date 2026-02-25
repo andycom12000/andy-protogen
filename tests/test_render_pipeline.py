@@ -268,3 +268,42 @@ def test_last_displayed_frame_restored_on_clear_effect():
     pipeline.clear_effect()
     # After clearing effect, last_displayed_frame should be restored to the expression frame
     assert pipeline.last_displayed_frame is img
+
+
+def test_get_jpeg_returns_none_without_frame():
+    """get_jpeg returns None when no frame has been displayed."""
+    display = MockDisplay(width=128, height=32)
+    pipeline = RenderPipeline(display)
+    assert pipeline.get_jpeg() is None
+
+
+def test_get_jpeg_returns_valid_jpeg():
+    """get_jpeg returns JPEG bytes after a frame is displayed."""
+    display = MockDisplay(width=128, height=32)
+    pipeline = RenderPipeline(display)
+    pipeline.show_image(Image.new("RGB", (128, 32), (255, 0, 0)))
+    data = pipeline.get_jpeg()
+    assert data is not None
+    assert data[:2] == b'\xff\xd8'  # JPEG magic bytes
+
+
+def test_get_jpeg_caches_result():
+    """get_jpeg returns cached bytes when the frame hasn't changed."""
+    display = MockDisplay(width=128, height=32)
+    pipeline = RenderPipeline(display)
+    img = Image.new("RGB", (128, 32), (0, 255, 0))
+    pipeline.show_image(img)
+    first = pipeline.get_jpeg()
+    second = pipeline.get_jpeg()
+    assert first is second  # same object, not re-encoded
+
+
+def test_get_jpeg_re_encodes_on_new_frame():
+    """get_jpeg re-encodes when last_displayed_frame changes."""
+    display = MockDisplay(width=128, height=32)
+    pipeline = RenderPipeline(display)
+    pipeline.show_image(Image.new("RGB", (128, 32), (255, 0, 0)))
+    first = pipeline.get_jpeg()
+    pipeline.show_image(Image.new("RGB", (128, 32), (0, 0, 255)))
+    second = pipeline.get_jpeg()
+    assert first is not second
