@@ -136,11 +136,12 @@
             background: #000;
         }
 
-        .preview-card canvas {
+        .preview-card img {
             width: 100%;
             image-rendering: pixelated;
             aspect-ratio: 4 / 1;
             border-radius: 4px;
+            display: block;
         }
 
         .card-divider {
@@ -549,6 +550,16 @@
             opacity: 0.8;
         }
 
+        /* Offline state */
+        body.offline .expressions button,
+        body.offline .effects-grid button,
+        body.offline .text-input-row button,
+        body.offline .toggle-switch,
+        body.offline input[type="range"] {
+            pointer-events: none;
+            opacity: 0.4;
+        }
+
         /* 寬螢幕響應式 */
         @media (min-width: 600px) {
             .container { max-width: 640px; }
@@ -585,7 +596,7 @@
         </div>
 
         <div class="card preview-card">
-            <canvas id="preview" width="128" height="32"></canvas>
+            <img id="preview" src="/api/preview/stream" alt="Live preview" width="128" height="32">
         </div>
 
         <div class="card">
@@ -676,6 +687,12 @@
             return id.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
         }
 
+        const PLACEHOLDER_SVG = 'data:image/svg+xml,' + encodeURIComponent(
+            '<svg xmlns="http://www.w3.org/2000/svg" width="128" height="32" viewBox="0 0 128 32">' +
+            '<rect width="128" height="32" fill="#1a1a2e"/>' +
+            '<text x="64" y="20" text-anchor="middle" fill="#64748b" font-size="10">?</text></svg>'
+        );
+
         /* Update brightness slider fill track */
         function updateSliderFill() {
             brightnessEl.style.setProperty('--fill', brightnessEl.value + '%');
@@ -693,6 +710,7 @@
                 statusEl.textContent = 'ONLINE';
                 statusEl.className = 'status connected';
                 reconnectDelay = 2000;
+                document.body.classList.remove('offline');
                 startHeartbeat();
                 startPreview();
                 loadState();
@@ -700,6 +718,7 @@
             ws.onclose = () => {
                 statusEl.textContent = 'RECONNECTING...';
                 statusEl.className = 'status disconnected';
+                document.body.classList.add('offline');
                 stopHeartbeat();
                 stopPreview();
                 setTimeout(connect, reconnectDelay);
@@ -836,6 +855,7 @@
                     img.src = `/api/expressions/${name}/thumbnail`;
                     img.alt = displayName(name);
                     img.loading = 'lazy';
+                    img.onerror = function() { this.src = PLACEHOLDER_SVG; this.onerror = null; };
                     btn.appendChild(img);
                     const label = document.createElement('span');
                     label.textContent = displayName(name);
@@ -891,6 +911,7 @@
                     img.src = `/api/effects/${name}/thumbnail`;
                     img.alt = displayName(name);
                     img.loading = 'lazy';
+                    img.onerror = function() { this.src = PLACEHOLDER_SVG; this.onerror = null; };
                     btn.appendChild(img);
                     const label = document.createElement('span');
                     label.textContent = displayName(name);
@@ -1114,34 +1135,28 @@
             activeEffectForParams = null;
         }
 
-        /* Live preview */
-        const previewCanvas = document.getElementById('preview');
-        const previewCtx = previewCanvas.getContext('2d');
-        let previewTimer = null;
-
+        /* MJPEG preview recovery */
+        const previewImg = document.getElementById('preview');
+        let previewRetryTimer = null;
         function startPreview() {
-            if (previewTimer) return;
-            previewTimer = setInterval(fetchPreview, 200);
+            if (previewRetryTimer) { clearTimeout(previewRetryTimer); previewRetryTimer = null; }
+            previewImg.src = '/api/preview/stream?' + Date.now();
         }
-
         function stopPreview() {
-            if (previewTimer) { clearInterval(previewTimer); previewTimer = null; }
+            previewImg.src = '';
         }
-
-        async function fetchPreview() {
-            try {
-                const res = await fetch('/api/preview');
-                if (res.status === 204) return;
-                const blob = await res.blob();
-                const bmp = await createImageBitmap(blob);
-                previewCtx.drawImage(bmp, 0, 0, 128, 32);
-                bmp.close();
-            } catch (_) {}
-        }
+        previewImg.onerror = () => {
+            if (previewRetryTimer) return;
+            previewRetryTimer = setTimeout(() => {
+                previewRetryTimer = null;
+                if (ws && ws.readyState === WebSocket.OPEN) {
+                    previewImg.src = '/api/preview/stream?' + Date.now();
+                }
+            }, 2000);
+        };
 
         updateSliderFill();
         connect();
-        startPreview();
         loadExpressions();
         loadEffects();
     </script>
