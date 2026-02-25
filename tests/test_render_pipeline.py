@@ -204,3 +204,67 @@ def test_update_effect_params_no_effect():
 
     # Should not raise
     pipeline.update_effect_params({"speed": 2.0})
+
+
+def test_last_displayed_frame_tracks_show_image():
+    """last_displayed_frame tracks the image passed to show_image."""
+    display = MockDisplay(width=128, height=32)
+    pipeline = RenderPipeline(display)
+
+    img = Image.new("RGB", (128, 32), (255, 0, 0))
+    pipeline.show_image(img)
+
+    assert pipeline.last_displayed_frame is img
+
+
+def test_last_displayed_frame_tracks_composited():
+    """last_displayed_frame is the composited result when an effect is active."""
+    display = MockDisplay(width=128, height=32)
+    pipeline = RenderPipeline(display)
+
+    base = Image.new("RGB", (128, 32), (50, 50, 50))
+    pipeline.show_image(base)
+
+    # Set a non-FrameEffect (matrix_rain uses ProceduralGenerator, not FrameEffect)
+    pipeline.set_effect("matrix_rain", {})
+
+    # Simulate the effect loop producing a frame
+    pipeline._effect_frame = Image.new("RGB", (128, 32), (0, 100, 0))
+    pipeline._push_composited()
+
+    assert pipeline.last_displayed_frame is not None
+    # The composited result should differ from the original base frame
+    assert pipeline.last_displayed_frame is not base
+
+
+def test_last_displayed_frame_cleared_on_clear():
+    """last_displayed_frame is reset to None on clear()."""
+    display = MockDisplay(width=128, height=32)
+    pipeline = RenderPipeline(display)
+
+    pipeline.show_image(Image.new("RGB", (128, 32), (255, 0, 0)))
+    assert pipeline.last_displayed_frame is not None
+
+    pipeline.clear()
+    assert pipeline.last_displayed_frame is None
+
+
+def test_last_displayed_frame_restored_on_clear_effect():
+    """last_displayed_frame is restored to expression frame when effect is cleared."""
+    display = MockDisplay(width=128, height=32)
+    pipeline = RenderPipeline(display)
+
+    img = Image.new("RGB", (128, 32), (0, 0, 255))
+    pipeline.show_image(img)
+    assert pipeline.last_displayed_frame is img
+
+    # Set an effect then clear it
+    pipeline.set_effect("matrix_rain", {})
+    pipeline._effect_frame = Image.new("RGB", (128, 32), (0, 100, 0))
+    pipeline._push_composited()
+    # After compositing, last_displayed_frame is the composited image, not img
+    assert pipeline.last_displayed_frame is not img
+
+    pipeline.clear_effect()
+    # After clearing effect, last_displayed_frame should be restored to the expression frame
+    assert pipeline.last_displayed_frame is img

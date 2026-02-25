@@ -197,3 +197,58 @@ def test_update_effect_params_endpoint(web_app):
         "name": "matrix_rain",
         "params": {"speed": 2.0, "density": 0.5},
     }
+
+
+def test_preview_returns_jpeg():
+    """Preview endpoint returns JPEG when a frame is available."""
+    frame = Image.new("RGB", (128, 32), (255, 0, 0))
+    commands = []
+
+    async def put(cmd: Command) -> None:
+        commands.append(cmd)
+
+    app = _create_app(
+        expression_names=["happy"],
+        put=put,
+        get_blink_state=lambda: False,
+        get_current_expression=lambda: "happy",
+        get_brightness=lambda: 100,
+        get_display_fps=lambda: 30.0,
+        get_last_frame=lambda: frame,
+    )
+    client = TestClient(app)
+    response = client.get("/api/preview")
+    assert response.status_code == 200
+    assert response.headers["content-type"] == "image/jpeg"
+    assert response.headers["cache-control"] == "no-store"
+    # JPEG magic bytes
+    assert response.content[:2] == b'\xff\xd8'
+
+
+def test_preview_no_frame_returns_204():
+    """Preview endpoint returns 204 when get_last_frame returns None."""
+    commands = []
+
+    async def put(cmd: Command) -> None:
+        commands.append(cmd)
+
+    app = _create_app(
+        expression_names=["happy"],
+        put=put,
+        get_blink_state=lambda: False,
+        get_current_expression=lambda: "happy",
+        get_brightness=lambda: 100,
+        get_display_fps=lambda: 30.0,
+        get_last_frame=lambda: None,
+    )
+    client = TestClient(app)
+    response = client.get("/api/preview")
+    assert response.status_code == 204
+
+
+def test_preview_no_callback_returns_204(web_app):
+    """Preview endpoint returns 204 when get_last_frame callback is not provided."""
+    app, _, _ = web_app
+    client = TestClient(app)
+    response = client.get("/api/preview")
+    assert response.status_code == 204
